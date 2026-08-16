@@ -1,0 +1,1084 @@
+/*
+ * Palette roles come from the data-viz reference palette (validated for CVD and
+ * contrast). Status colors are reserved and never reused as series colors; every
+ * status is rendered with an icon + label so hue never carries meaning alone.
+ */
+:root {
+  color-scheme: light;
+
+  --surface-1: #fcfcfb;
+  --surface-2: #f4f4f1;
+  --page: #f9f9f7;
+
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+
+  --gridline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.1);
+  --border-strong: rgba(11, 11, 11, 0.16);
+
+  /* Categorical slot 1 — the only series hue this dashboard needs. */
+  --series-1: #2a78d6;
+  --series-1-wash: rgba(42, 120, 214, 0.1);
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --status-unknown: #898781;
+
+  --success-text: #006300;
+
+  --radius-card: 14px;
+  --radius-inner: 10px;
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.04);
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+
+    --surface-1: #1a1a19;
+    --surface-2: #232322;
+    --page: #0d0d0d;
+
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+
+    --gridline: #2c2c2a;
+    --baseline: #383835;
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.16);
+
+    --series-1: #3987e5;
+    --series-1-wash: rgba(57, 135, 229, 0.14);
+
+    --success-text: #0ca30c;
+    --shadow-card: none;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface-1: #1a1a19;
+  --surface-2: #232322;
+  --page: #0d0d0d;
+
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+
+  --gridline: #2c2c2a;
+  --baseline: #383835;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --series-1: #3987e5;
+  --series-1-wash: rgba(57, 135, 229, 0.14);
+
+  --success-text: #0ca30c;
+  --shadow-card: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.shell {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 40px 40px 100px;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 24px 16px 64px;
+  }
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+/*
+ * Logo lockup at the top-left. The source PNG is matted on white, so it rides on
+ * an explicit white plate rather than the page surface — otherwise it reads as a
+ * stray white rectangle on the off-white page and on the dark theme.
+ */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+/*
+ * Sized against the masthead text block beside it, not against the artwork: the
+ * source is 409×240, so even at 2× this height it is still downscaling.
+ */
+.brand-logo {
+  height: 84px;
+  width: auto;
+  flex: none;
+  display: block;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  padding: 8px 14px;
+  box-shadow: var(--shadow-card);
+}
+
+@media (max-width: 720px) {
+  .brand {
+    gap: 12px;
+  }
+
+  .brand-logo {
+    height: 62px;
+    padding: 6px 10px;
+  }
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.masthead h1 {
+  margin: 0;
+  font-size: 29px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.masthead .subtitle {
+  margin-top: 7px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.masthead-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tabs {
+  display: flex;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  padding: 4px;
+  gap: 2px;
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 7px;
+  color: var(--text-secondary);
+}
+
+.tab[aria-selected='true'] {
+  background: var(--series-1);
+  color: #ffffff;
+}
+
+.refresh-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Scope bar (what the page is showing, and the controls that change it) ── */
+.scopebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+}
+
+.scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.scope-chip-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.scope-chip select {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.scope-chip-static {
+  color: var(--text-secondary);
+}
+
+.filters-spacer {
+  flex: 1;
+}
+
+.filter-note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Breadcrumb + system identity row ────────────────────────────────────── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.breadcrumb-current {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.system-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* The tab strip sits under the system it switches views for. */
+.tabs {
+  align-self: flex-start;
+  width: fit-content;
+  margin-bottom: 22px;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.card-pad {
+  padding: 20px 24px;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 0 10px;
+}
+
+.subcard {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  padding: 14px 16px;
+}
+
+.subcard-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+/* ── Status chips (icon + label; never color alone) ──────────────────────── */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-glyph {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  flex: none;
+}
+
+.status-text-good {
+  color: var(--success-text);
+}
+.status-text-warning,
+.status-text-serious,
+.status-text-critical {
+  color: var(--text-primary);
+}
+.status-text-info,
+.status-text-unknown {
+  color: var(--text-secondary);
+}
+
+/* ── Alerts ──────────────────────────────────────────────────────────────── */
+.alerts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.alerts-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.alert-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+
+.alert-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  width: 74px;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-body {
+  font-size: 13px;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.alert-resolved {
+  opacity: 0.7;
+}
+
+.divider-top {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gridline);
+}
+
+/* ── Endpoint tiles ──────────────────────────────────────────────────────── */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px;
+  min-width: 0;
+}
+
+.tile-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tile-host {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── System identity (score ring + SID) ──────────────────────────────────── */
+.score-ring {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-ring-inner {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.system-sid {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.system-name {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ── Metrics overview: one tile per parameter ────────────────────────────── */
+.mgroup {
+  margin-bottom: 26px;
+}
+
+/*
+ * Five across, stepping down on narrower viewports. Fixed column counts rather
+ * than auto-fill: the row width is what keeps the tiles reading as a grid, and
+ * minmax(0, …) stops a long reading from forcing a column wider than its share.
+ */
+.mtile-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1180px) {
+  .mtile-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .mtile-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .mtile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .mtile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/*
+ * The accent bar down the left edge is decoration. Every tile also states its
+ * status as glyph + word in the footer, so hue never carries meaning alone.
+ */
+.mtile {
+  display: flex;
+  flex-direction: column;
+  min-height: 168px;
+  padding: 14px 16px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--tile-accent, var(--border-strong));
+  border-radius: var(--radius-inner);
+  box-shadow: var(--shadow-card);
+}
+
+.mtile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mtile-title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.mtile-info {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--text-muted);
+  cursor: help;
+}
+
+.mtile-info:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+}
+
+/* The reading sits in the middle of the tile, whatever length it turns out to be. */
+.mtile-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.mtile-value {
+  margin: 0;
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.mtile-value-lg {
+  font-size: 38px;
+}
+
+.mtile-value-md {
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.mtile-value-sm {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.mtile-unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 6px;
+}
+
+/*
+ * Ring + reading on one row. The ring is a fixed 62px, so the headline steps down
+ * to the medium size (see volumeTile) and the pair still clears the tile width at
+ * the five-across breakpoint.
+ */
+.mtile-figure {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mini-donut {
+  flex: none;
+  display: block;
+}
+
+.mtile-figure-text {
+  min-width: 0;
+}
+
+.mtile-figure-sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.mtile-meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--series-1-wash);
+  overflow: hidden;
+}
+
+.mtile-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.mtile-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--gridline);
+}
+
+.mtile-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.mtile-note {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Distinguishes an imported/stale reading from a live one. Deliberately not
+ * styled as a warning (no amber, no icon) — an unconfigured system reporting
+ * its workbook history is the expected, documented state, not a fault.
+ */
+.mtile-source-note {
+  font-size: 10.5px;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--text-muted);
+  border-top: 1px dashed var(--gridline);
+  padding-top: 4px;
+  margin-top: 2px;
+}
+/*
+ * A flagged reading doubles as the control that opens its detail dialog. The
+ * underline is what advertises that — colour alone would not, and the tile's
+ * accent bar is already spoken for by status.
+ */
+.mtile-value-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  color: inherit;
+}
+
+.mtile-value-link {
+  display: block;
+  text-decoration: underline;
+  text-decoration-color: var(--baseline);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.mtile-value-button:hover .mtile-value-link,
+.mtile-value-button:focus-visible .mtile-value-link {
+  text-decoration-color: var(--text-primary);
+}
+
+.mtile-value-button:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Detail dialog ───────────────────────────────────────────────────────── */
+.detail-dialog {
+  width: min(560px, calc(100vw - 32px));
+  padding: 22px 24px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  box-shadow: 0 18px 48px rgba(11, 11, 11, 0.22);
+}
+
+.detail-dialog::backdrop {
+  background: rgba(11, 11, 11, 0.42);
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.detail-eyebrow {
+  margin: 0 0 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.detail-close {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 17px;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+
+.detail-close:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.detail-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-inner);
+}
+
+.detail-reading {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.detail-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px 20px;
+  margin: 0 0 18px;
+}
+
+.detail-facts dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.detail-facts dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.detail-fact-wide {
+  grid-column: 1 / -1;
+}
+
+.detail-fact-wide dd {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.detail-sub {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.detail-code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.detail-subhead {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.detail-section {
+  border-top: 1px solid var(--gridline);
+  padding-top: 14px;
+}
+
+.detail-note {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--gridline);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* ── Charts ──────────────────────────────────────────────────────────────── */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chart-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chart-wrap {
+  position: relative;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  touch-action: none;
+}
+
+.chart-empty {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 24px 0;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 14px rgba(11, 11, 11, 0.14);
+  min-width: 128px;
+}
+
+.tooltip-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.tooltip-key {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  flex: none;
+}
+
+.tooltip-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-series {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.tooltip-note {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.chart-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 2px 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  font-size: 11.5px;
+  padding: 5px 8px 5px 0;
+  border-bottom: 1px solid var(--gridline);
+}
+
+.data-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.data-table td {
+  color: var(--text-primary);
+}
+
+.table-scroll {
+  max-height: 220px;
+  overflow: auto;
+}
+
+/* ── History ─────────────────────────────────────────────────────────────── */
+.history-head,
+.history-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+  padding: 13px 20px;
+  align-items: center;
+}
+
+.history-head {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.history-row {
+  border-bottom: 1px solid var(--gridline);
+}
+
+.history-date {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── States ──────────────────────────────────────────────────────────────── */
+.state-panel {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.state-panel code {
+  font-family: var(--font-mono);
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Refetch keeps the frame: hold the render, drop the opacity. */
+.is-stale {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.stack-gap {
+  margin-bottom: 22px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

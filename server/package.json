@@ -1,0 +1,24 @@
+{
+  "name": "sap-monitoring-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "migrate": "node scripts/migrate.js",
+    "import": "node scripts/import-excel.js",
+    "collect": "node scripts/collect.js",
+    "worker": "node src/worker.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1"
+  }
+}

@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:oklch(48% 0.13 255)}
+a:hover{color:oklch(40% 0.14 255)}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="min-height:100vh;background:oklch(97.3% 0.004 250);font-family:'IBM Plex Sans',system-ui,sans-serif;color:oklch(22% 0.01 250);-webkit-font-smoothing:antialiased">
+<div style="max-width:1360px;margin:0 auto;padding:40px 40px 100px">
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;margin-bottom:30px">
+  <div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="width:9px;height:9px;border-radius:50%;background:{{systemCard.color}}"></div>
+      <span style="font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:oklch(50% 0.01 250)">SAP Basis Monitoring</span>
+    </div>
+    <h1 style="margin:0;font-size:29px;font-weight:700;letter-spacing:-.01em">Landscape Health Dashboard</h1>
+    <div style="margin-top:7px;font-size:13.5px;color:oklch(50% 0.01 250)">{{selectedSid}} · {{systemCard.name}} — daily operations checklist · latest run {{latestFormatted}}</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="text-align:right">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:oklch(55% 0.01 250)">System</div>
+      <select value="{{selectedSid}}" onChange="{{selectSid}}" style="font-size:14px;font-weight:600;color:oklch(28% 0.01 250);border:1px solid oklch(85% 0.005 250);border-radius:7px;padding:5px 8px;background:white;font-family:inherit">
+        <sc-for list="{{sidOptions}}" as="opt" hint-placeholder-count="3">
+          <option value="{{opt.sid}}">{{opt.label}}</option>
+        </sc-for>
+      </select>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:oklch(55% 0.01 250)">Status</div>
+      <div style="font-size:15px;font-weight:600;color:{{systemCard.color}}">{{systemCard.statusLabel}}</div>
+    </div>
+    <div style="display:flex;background:white;border:1px solid oklch(89% 0.005 250);border-radius:10px;padding:4px;gap:2px">
+      <button onClick="{{showSnapshot}}" style="{{snapshotBtnStyle}}">Snapshot</button>
+      <button onClick="{{showHistory}}" style="{{historyBtnStyle}}">History Log</button>
+    </div>
+  </div>
+</div>
+
+<sc-if value="{{isSnapshot}}" hint-placeholder-val="{{true}}">
+<div>
+
+<div style="background:white;border:1px solid {{alertBorderColor}};border-radius:14px;padding:20px 24px;margin-bottom:22px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:26px;height:26px;border-radius:7px;background:{{alertIconBg}};display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px">{{alertIconGlyph}}</div>
+      <div style="font-size:15px;font-weight:600">{{alertsTitle}}</div>
+    </div>
+    <div style="font-size:12px;color:oklch(50% 0.01 250)">{{alertsCountLabel}}</div>
+  </div>
+
+  <sc-if value="{{hasActiveAlerts}}" hint-placeholder-val="{{false}}">
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px">
+      <sc-for list="{{activeAlerts}}" as="al" hint-placeholder-count="2">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;background:oklch(97% 0.03 75)">
+          <div style="width:7px;height:7px;border-radius:50%;background:{{al.color}};flex:none"></div>
+          <div style="font-size:12px;font-weight:600;color:oklch(40% 0.01 250);width:74px;flex:none">{{al.dateShort}}</div>
+          <div style="font-size:13px;color:oklch(30% 0.01 250);flex:1">{{al.label}} — {{al.value}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{noActiveAlerts}}" hint-placeholder-val="{{true}}">
+    <div style="font-size:13.5px;color:oklch(42% 0.01 250);display:flex;align-items:center;gap:8px;padding:2px 0 6px">
+      <span style="color:oklch(58% 0.14 148);font-weight:700">✓</span>
+      <span>No active alerts — all monitored parameters within normal range for {{selectedSid}}.</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{hasRecentResolved}}" hint-placeholder-val="{{false}}">
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid oklch(93% 0.004 250)">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:oklch(55% 0.01 250);margin-bottom:8px">Recently resolved</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <sc-for list="{{recentResolved}}" as="al" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:12px;padding:6px 12px;opacity:.65">
+            <div style="width:6px;height:6px;border-radius:50%;background:oklch(75% 0.01 250);flex:none"></div>
+            <div style="font-size:12px;color:oklch(45% 0.01 250);width:74px;flex:none">{{al.dateShort}}</div>
+            <div style="font-size:12.5px;color:oklch(45% 0.01 250);flex:1">{{al.label}} — {{al.value}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+<div style="margin-bottom:22px">
+  <div style="font-size:13px;font-weight:600;color:oklch(38% 0.01 250);margin-bottom:10px">System Availability</div>
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+    <sc-for list="{{urlTiles}}" as="u" hint-placeholder-count="3">
+      <div style="background:white;border:1px solid oklch(89% 0.005 250);border-radius:12px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0">
+        <div style="min-width:0;overflow:hidden">
+          <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250)">{{u.name}}</div>
+          <div style="font-size:11.5px;color:oklch(52% 0.01 250);margin-top:3px;font-family:'IBM Plex Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{u.host}}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex:none;min-width:0">
+          <div style="width:8px;height:8px;border-radius:50%;background:{{u.color}}"></div>
+          <span style="font-size:12px;font-weight:600;color:{{u.color}}">{{u.status}}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+
+<div style="font-size:13px;font-weight:600;color:oklch(38% 0.01 250);margin-bottom:10px">System Health — {{selectedSid}}</div>
+<div style="background:white;border:1px solid oklch(89% 0.005 250);border-radius:14px;overflow:hidden;margin-bottom:30px">
+  <div style="padding:20px;display:flex;align-items:center;gap:16px">
+    <div style="width:58px;height:58px;border-radius:50%;flex:none;background:{{systemCard.ring}};display:flex;align-items:center;justify-content:center">
+      <div style="width:46px;height:46px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:{{systemCard.color}}">{{systemCard.score}}</div>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:16px;font-weight:700;color:oklch(24% 0.01 250)">{{systemCard.sid}}</div>
+      <div style="font-size:12px;font-weight:600;color:{{systemCard.color}};margin-top:2px">{{systemCard.statusLabel}}</div>
+      <div style="font-size:11.5px;color:oklch(52% 0.01 250);margin-top:2px">{{systemCard.name}}</div>
+    </div>
+  </div>
+  <div style="border-top:1px solid oklch(93% 0.004 250);padding:16px 20px 4px">
+    <div style="background:oklch(98% 0.003 250);border:1px solid oklch(91% 0.005 250);border-radius:10px;padding:14px 16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:oklch(50% 0.01 250);margin-bottom:10px">DBA Cockpit</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <div onClick="{{toggleDataVol}}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;cursor:pointer">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:12.5px;color:oklch(38% 0.01 250)">Data Volume</div>
+              <span style="font-size:11px;color:oklch(60% 0.01 250);display:inline-block;transform:{{dataVolChevron}}">⌄</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:oklch(48% 0.01 250)">{{systemCard.dataVol.text}}</span>
+              <span style="font-size:11.5px;font-weight:700;color:white;background:{{systemCard.dataVol.color}};border-radius:5px;padding:2px 7px;flex:none">{{systemCard.dataVol.pctLabel}}</span>
+            </div>
+          </div>
+          <sc-if value="{{dataVolOpen}}" hint-placeholder-val="{{false}}">
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid oklch(93% 0.004 250)">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Used</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.dataVol.usedText}}</div>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Total</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.dataVol.totalText}}</div>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Free</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.dataVol.freeText}}</div>
+                </div>
+              </div>
+              <div style="font-size:11.5px;font-weight:600;color:{{systemCard.dataVol.color}};margin-bottom:10px">{{systemCard.dataVol.detailNote}}</div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+                <div style="font-size:11px;font-weight:600;color:oklch(45% 0.01 250);text-transform:uppercase;letter-spacing:.04em">Day-wise trend</div>
+                <div style="font-size:11px;color:oklch(55% 0.01 250)">GB used, last {{trendDays}} checks</div>
+              </div>
+              <div>{{dataVolChart}}</div>
+            </div>
+          </sc-if>
+        </div>
+        <div>
+          <div onClick="{{toggleLogVol}}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;cursor:pointer">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:12.5px;color:oklch(38% 0.01 250)">Log Volume</div>
+              <span style="font-size:11px;color:oklch(60% 0.01 250);display:inline-block;transform:{{logVolChevron}}">⌄</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:oklch(48% 0.01 250)">{{systemCard.logVol.text}}</span>
+              <span style="font-size:11.5px;font-weight:700;color:white;background:{{systemCard.logVol.color}};border-radius:5px;padding:2px 7px;flex:none">{{systemCard.logVol.pctLabel}}</span>
+            </div>
+          </div>
+          <sc-if value="{{logVolOpen}}" hint-placeholder-val="{{false}}">
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid oklch(93% 0.004 250)">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Used</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.logVol.usedText}}</div>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Total</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.logVol.totalText}}</div>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Free</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.logVol.freeText}}</div>
+                </div>
+              </div>
+              <div style="font-size:11.5px;font-weight:600;color:{{systemCard.logVol.color}};margin-bottom:10px">{{systemCard.logVol.detailNote}}</div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+                <div style="font-size:11px;font-weight:600;color:oklch(45% 0.01 250);text-transform:uppercase;letter-spacing:.04em">Day-wise trend</div>
+                <div style="font-size:11px;color:oklch(55% 0.01 250)">GB used, last {{trendDays}} checks</div>
+              </div>
+              <div>{{logVolChart}}</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:6px 20px 4px">
+    <div style="background:oklch(98% 0.003 250);border:1px solid oklch(91% 0.005 250);border-radius:10px;padding:14px 16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:oklch(50% 0.01 250);margin-bottom:10px">Free Memory</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <div onClick="{{toggleFreeApp}}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;cursor:pointer">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:12.5px;color:oklch(38% 0.01 250)">App Server</div>
+              <span style="font-size:11px;color:oklch(60% 0.01 250);display:inline-block;transform:{{freeAppChevron}}">⌄</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:oklch(48% 0.01 250)">{{systemCard.freeApp.text}}</span>
+              <span style="font-size:11.5px;font-weight:700;color:white;background:{{systemCard.freeApp.color}};border-radius:5px;padding:2px 7px;flex:none">{{systemCard.freeApp.pctLabel}}</span>
+            </div>
+          </div>
+          <sc-if value="{{freeAppOpen}}" hint-placeholder-val="{{false}}">
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid oklch(93% 0.004 250)">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Used</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.freeApp.usedText}}</div>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Total</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.freeApp.totalText}}</div>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Free</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.freeApp.freeText}}</div>
+                </div>
+              </div>
+              <div style="font-size:11.5px;font-weight:600;color:{{systemCard.freeApp.color}};margin-bottom:10px">{{systemCard.freeApp.detailNote}}</div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+                <div style="font-size:11px;font-weight:600;color:oklch(45% 0.01 250);text-transform:uppercase;letter-spacing:.04em">Day-wise trend</div>
+                <div style="font-size:11px;color:oklch(55% 0.01 250)">GB used, last {{trendDays}} checks</div>
+              </div>
+              <div>{{freeAppChart}}</div>
+            </div>
+          </sc-if>
+        </div>
+        <div>
+          <div onClick="{{toggleFreeDb}}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;cursor:pointer">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:12.5px;color:oklch(38% 0.01 250)">Database</div>
+              <span style="font-size:11px;color:oklch(60% 0.01 250);display:inline-block;transform:{{freeDbChevron}}">⌄</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:oklch(48% 0.01 250)">{{systemCard.freeDb.text}}</span>
+              <span style="font-size:11.5px;font-weight:700;color:white;background:{{systemCard.freeDb.color}};border-radius:5px;padding:2px 7px;flex:none">{{systemCard.freeDb.pctLabel}}</span>
+            </div>
+          </div>
+          <sc-if value="{{freeDbOpen}}" hint-placeholder-val="{{false}}">
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid oklch(93% 0.004 250)">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Used</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.freeDb.usedText}}</div>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Total</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.freeDb.totalText}}</div>
+                </div>
+                <div>
+                  <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:oklch(58% 0.01 250)">Free</div>
+                  <div style="font-size:13px;font-weight:600;color:oklch(28% 0.01 250);margin-top:2px">{{systemCard.freeDb.freeText}}</div>
+                </div>
+              </div>
+              <div style="font-size:11.5px;font-weight:600;color:{{systemCard.freeDb.color}};margin-bottom:10px">{{systemCard.freeDb.detailNote}}</div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+                <div style="font-size:11px;font-weight:600;color:oklch(45% 0.01 250);text-transform:uppercase;letter-spacing:.04em">Day-wise trend</div>
+                <div style="font-size:11px;color:oklch(55% 0.01 250)">GB used, last {{trendDays}} checks</div>
+              </div>
+              <div>{{freeDbChart}}</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:6px 20px 16px">
+    <div style="background:oklch(98% 0.003 250);border:1px solid oklch(91% 0.005 250);border-radius:10px;padding:14px 16px">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:oklch(50% 0.01 250);margin-bottom:10px">System Checks</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 32px">
+        <sc-for list="{{systemCard.params}}" as="p" hint-placeholder-count="8">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid oklch(96% 0.003 250)">
+            <div style="font-size:12.5px;color:oklch(38% 0.01 250);flex:1">{{p.label}}</div>
+            <div style="display:flex;align-items:center;gap:7px;flex:none;max-width:56%">
+              <div style="width:6px;height:6px;border-radius:50%;background:{{p.color}};flex:none"></div>
+              <span style="font-size:12px;color:oklch(45% 0.01 250);text-align:right">{{p.value}}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+
+<sc-if value="{{showTrends}}" hint-placeholder-val="{{true}}">
+<div style="display:grid;grid-template-columns:{{trendsGridCols}};gap:16px">
+  <div style="background:white;border:1px solid oklch(89% 0.005 250);border-radius:14px;padding:20px 22px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+      <div style="font-size:13px;font-weight:600;color:oklch(30% 0.01 250)">Free Memory — App Server ({{selectedSid}})</div>
+      <div style="font-size:11px;color:oklch(55% 0.01 250)">GB free, last {{trendDays}} checks</div>
+    </div>
+    <div style="display:flex;gap:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:oklch(42% 0.01 250)">
+        <div style="width:7px;height:7px;border-radius:50%;background:{{sidColor}}"></div>{{selectedSid}}
+      </div>
+    </div>
+    <div>{{appMemChart}}</div>
+  </div>
+  <sc-if value="{{hasDbMem}}" hint-placeholder-val="{{true}}">
+    <div style="background:white;border:1px solid oklch(89% 0.005 250);border-radius:14px;padding:20px 22px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:13px;font-weight:600;color:oklch(30% 0.01 250)">Free Memory — Database ({{selectedSid}})</div>
+        <div style="font-size:11px;color:oklch(55% 0.01 250)">GB free, last {{trendDays}} checks</div>
+      </div>
+      <div style="display:flex;gap:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:5px;font-size:11.5px;color:oklch(42% 0.01 250)">
+          <div style="width:7px;height:7px;border-radius:50%;background:{{sidColor}}"></div>{{selectedSid}}
+        </div>
+      </div>
+      <div>{{dbMemChart}}</div>
+    </div>
+  </sc-if>
+  <sc-if value="{{noDbMem}}" hint-placeholder-val="{{false}}">
+    <div style="font-size:12.5px;color:oklch(52% 0.01 250);font-style:italic;padding:4px 2px 0">Database memory monitoring not available for {{selectedSid}}.</div>
+  </sc-if>
+</div>
+</sc-if>
+
+</div>
+</sc-if>
+
+<sc-if value="{{isHistory}}" hint-placeholder-val="{{false}}">
+<div style="background:white;border:1px solid oklch(89% 0.005 250);border-radius:14px;overflow:hidden">
+  <div style="display:grid;grid-template-columns:110px 1fr;padding:14px 20px;background:oklch(96% 0.004 250);border-bottom:1px solid oklch(89% 0.005 250)">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:oklch(48% 0.01 250)">Date</div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:oklch(48% 0.01 250)">{{selectedSid}}</div>
+  </div>
+  <sc-for list="{{historyRows}}" as="row" hint-placeholder-count="10">
+    <div style="display:grid;grid-template-columns:110px 1fr;padding:13px 20px;border-bottom:1px solid oklch(95% 0.003 250);align-items:center">
+      <div style="font-size:12.5px;font-weight:600;color:oklch(32% 0.01 250)">{{row.dateShort}}</div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <div style="width:7px;height:7px;border-radius:50%;background:{{row.status.color}};flex:none"></div>
+        <span style="font-size:12.5px;color:oklch(38% 0.01 250)">{{row.status.note}}</span>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;alertHistoryDays&quot;: {&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:20,&quot;min&quot;:5,&quot;max&quot;:20,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Behavior&quot;}, &quot;showTrends&quot;: {&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;}}">
+const GREEN='oklch(58% 0.14 148)', AMBER='oklch(66% 0.15 65)', RED='oklch(56% 0.19 25)', BLUE='oklch(48% 0.13 255)';
+
+const RAW_DAYS = [{"date":"2026-04-30","systems":{"MSP":{"dataVol":"224.75 GB /2.91 TB","logVol":"480 GB /511.75 GB","st22":"One Runtime error found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","freeApp":"Total : 62 GB  / Free : 28 GB","freeDb":"Total : 754 GB  / Free : 383 GB","freeAppGB":28,"freeDbGB":383},"MGP":{"dataVol":"Total: 107GB / Free: 43 GB","logVol":"271GB / Free: 259 GB","st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","freeApp":"Total : 62 GB  / Free : 47 GB","freeDb":"N/A","freeAppGB":47,"freeDbGB":null},"SPA":{"dataVol":"Total: 130GB / Free: 12GB","logVol":"138GB / Free:120 GB","st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"One cancelled job found","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","freeApp":"Total : 62 GB  / Free : 39 GB","freeDb":"N/A","freeAppGB":39,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-01","systems":{"MSP":{"freeApp":"Total : 62 GB  / Free : 24 GB","freeDb":"Total : 754 GB  / Free : 484 GB","freeAppGB":24,"freeDbGB":484,"st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":"The number of entries displayed is 10.","dataVol":"224.75 GB /2.91 TB","logVol":"480 GB /511.75 GB"},"MGP":{"freeApp":"Total : 62 GB  / Free : 47 GB","freeDb":"N/A","freeAppGB":47,"freeDbGB":null,"st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","dataVol":"Total: 107GB / Free: 43 GB","logVol":"271GB / Free: 264 GB"},"SPA":{"freeApp":"Total : 62 GB  / Free : 33 GB","freeDb":"N/A","freeAppGB":33,"freeDbGB":null,"st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","dataVol":"Total: 130GB / Free: 10GB","logVol":"138GB / Free:129 GB"}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-04","systems":{"MSP":{"freeApp":"Total : 62 GB  / Free : 22 GB","freeDb":"Total : 754 GB  / Free : 459 GB","freeAppGB":22,"freeDbGB":459,"st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":"The number of entries displayed is 10.","dataVol":"224.75 GB /2.91 TB","logVol":"478 GB /511.75 GB"},"MGP":{"freeApp":"Total : 62 GB  / Free : 47 GB","freeDb":"N/A","freeAppGB":47,"freeDbGB":null,"st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","dataVol":"Total: 107GB / Free: 43 GB","logVol":"271GB / Free: 259 GB"},"SPA":{"freeApp":"Total : 62 GB  / Free : 33 GB","freeDb":"N/A","freeAppGB":33,"freeDbGB":null,"st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","dataVol":"Total: 130GB / Free: 10GB","logVol":"138GB / Free:119 GB"}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-07","systems":{"MSP":{"freeAppGB":22,"freeDbGB":451},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":44,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-08","systems":{"MSP":{"freeAppGB":21,"freeDbGB":442},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":42,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-09","systems":{"MSP":{"freeAppGB":21,"freeDbGB":440},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":41,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-10","systems":{"MSP":{"freeAppGB":21,"freeDbGB":437},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":34,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-11","systems":{"MSP":{"freeAppGB":21,"freeDbGB":436},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":34,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-14","systems":{"MSP":{"freeAppGB":21,"freeDbGB":423},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":34,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-15","systems":{"MSP":{"freeAppGB":21,"freeDbGB":424},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":33,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-16","systems":{"MSP":{"freeAppGB":21,"freeDbGB":417},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":33,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-17","systems":{"MSP":{"freeAppGB":21,"freeDbGB":417},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":33,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-18","systems":{"MSP":{"freeAppGB":21,"freeDbGB":408},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":33,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-21","systems":{"MSP":{"freeAppGB":21,"freeDbGB":376},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":33,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-22","systems":{"MSP":{"freeAppGB":21,"freeDbGB":380},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":33,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-23","systems":{"MSP":{"freeAppGB":21,"freeDbGB":378},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":33,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-24","systems":{"MSP":{"freeAppGB":21,"freeDbGB":374},"MGP":{"freeAppGB":47,"freeDbGB":null},"SPA":{"freeAppGB":32,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}},{"date":"2026-06-25","systems":{"MSP":{"dataVol":"224.75 GB /2.91 TB","logVol":"478 GB /511.75 GB","st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":"The number of entries displayed is 15.","freeApp":"Total : 62 GB  / Free : 21 GB","freeDb":"Total : 754 GB  / Free : 366 GB","freeAppGB":21,"freeDbGB":366},"MGP":{"dataVol":"Total: 107GB / Free: 43 GB","logVol":"271GB / Free: 259 GB","st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","freeApp":"Total : 62 GB  / Free : 47 GB","freeDb":"N/A","freeAppGB":47,"freeDbGB":null},"SPA":{"dataVol":"Total: 130GB / Free: 10GB","logVol":"138GB / Free:121  GB","st22":"No critical errors found","backup":"Backup Successful","sm13":"Update Active","sm12":"No lock entries found","sm51":"App's Active","sm50":"All Ok","st06":"All Ok","sm37":"No long running","smq1":"No Queues found","smq2":"No Queues found","sm20":"No user critical activity","sm21":"No high priority entry found","sm58":" No Entries","freeApp":"Total : 62 GB  / Free : 32 GB","freeDb":"N/A","freeAppGB":32,"freeDbGB":null}},"urls":{"biprod":"URL is Accessable","fiori":"URL is Accessable","webdispatcher":"URL is Accessable"}}];
+
+const SID_META = {
+  MSP: 'Production — MSP Client 300',
+  MGP: 'BW / Analytics — MGP',
+  SPA: 'Solution Manager — SPA'
+};
+const URL_META = {
+  biprod: {name:'BI Platform', host:'mpclsapbip.mpower.com.qa:8080'},
+  fiori: {name:'Fiori Launchpad', host:'mpclsapgws.mpower.com.qa:1443'},
+  webdispatcher: {name:'Web Dispatcher', host:'mpclsapwdp.mpower.com.qa:8000'}
+};
+const PARAM_DEFS = [
+  {key:'dataVol', label:'DBA Cockpit — Data Volume', info:true},
+  {key:'logVol', label:'DBA Cockpit — Log Volume', info:true},
+  {key:'st22', label:'ST22 — ABAP Runtime Errors', normal:'no critical errors found'},
+  {key:'backup', label:'Backup', normal:'backup successful'},
+  {key:'sm13', label:'SM13 — Update Requests', normal:'update active'},
+  {key:'sm12', label:'SM12 — Lock Entries', normal:'no lock entries found'},
+  {key:'sm51', label:'SM51 — Application Servers', normal:"app's active"},
+  {key:'sm50', label:'SM50 — Work Process List', normal:'all ok'},
+  {key:'st06', label:'ST06 — OS Monitoring', normal:'all ok'},
+  {key:'sm37', label:'SM37 — Background Jobs', normal:'no long running'},
+  {key:'smq1', label:'SMQ1 — Outbound Queues', normal:'no queues found'},
+  {key:'smq2', label:'SMQ2 — Inbound Queues', normal:'no queues found'},
+  {key:'sm20', label:'SM20 — Security Audit Log', normal:'no user critical activity'},
+  {key:'sm21', label:'SM21 — System Log', normal:'no high priority entry found'},
+  {key:'sm58', label:'SM58 — Transactional RFC', info:true},
+  {key:'freeApp', label:'Free Memory — App Server', info:true},
+  {key:'freeDb', label:'Free Memory — Database', info:true}
+];
+
+function isAnomaly(def, val){
+  if (def.info || !val) return false;
+  return !String(val).toLowerCase().includes(def.normal);
+}
+function parseVolumeGB(str){
+  if (!str) return null;
+  const matches = [...String(str).matchAll(/([\d.]+)\s*(GB|TB)/gi)];
+  if (matches.length < 2) return null;
+  const toGB = (num, unit) => unit.toUpperCase() === 'TB' ? num * 1024 : num;
+  const a = toGB(parseFloat(matches[0][1]), matches[0][2]);
+  const b = toGB(parseFloat(matches[1][1]), matches[1][2]);
+  const isFreeFormat = /free/i.test(str);
+  const totalGB = isFreeFormat ? a : b;
+  const usedGB = isFreeFormat ? (a - b) : a;
+  if (!totalGB) return null;
+  return { usedGB, totalGB, percentUsed: (usedGB / totalGB) * 100 };
+}
+function trimNum(n){
+  return String(Math.round(n * 100) / 100);
+}
+function fmtVolumePart(gb){
+  return gb >= 1024 ? `${trimNum(gb / 1024)} TB` : `${trimNum(gb)} GB`;
+}
+function volumeInfo(str, dateLabel){
+  const parsed = parseVolumeGB(str);
+  if (!parsed) {
+    return {
+      text: str || '—', pctLabel: '—', color: 'oklch(80% 0.005 250)', statusLabel: 'No data',
+      detailNote: 'No data available for this metric.',
+      usedGB: null, totalGB: null, usedText: '—', totalText: '—', freeText: '—'
+    };
+  }
+  const pct = Math.round(parsed.percentUsed);
+  const color = pct > 95 ? RED : pct > 80 ? AMBER : GREEN;
+  const statusLabel = pct > 95 ? 'Critical' : pct > 80 ? 'Elevated' : 'Normal';
+  const freeGB = parsed.totalGB - parsed.usedGB;
+  const text = `${fmtVolumePart(parsed.usedGB)} /${fmtVolumePart(parsed.totalGB)}`;
+  return {
+    text, pctLabel: `${pct}%`, color, statusLabel,
+    detailNote: `${statusLabel} — ${pct}% consumed as of ${dateLabel}`,
+    usedGB: parsed.usedGB, totalGB: parsed.totalGB,
+    usedText: fmtVolumePart(parsed.usedGB), totalText: fmtVolumePart(parsed.totalGB), freeText: fmtVolumePart(freeGB)
+  };
+}
+function totalFromLatestString(days, sid, key){
+  for (let i = days.length - 1; i >= 0; i--) {
+    const sys = days[i].systems[sid];
+    const parsed = sys && parseVolumeGB(sys[key]);
+    if (parsed) return parsed.totalGB;
+  }
+  return null;
+}
+function forwardFillVolumes(days){
+  const last = {};
+  return days.map(day => {
+    const systems = {};
+    for (const sid of ['MSP', 'MGP', 'SPA']) {
+      const sys = day.systems[sid];
+      if (!sys) { systems[sid] = sys; continue; }
+      const prev = last[sid] || {};
+      const dataVol = sys.dataVol ?? prev.dataVol;
+      const logVol = sys.logVol ?? prev.logVol;
+      last[sid] = { dataVol, logVol };
+      systems[sid] = { ...sys, dataVol, logVol };
+    }
+    return { ...day, systems };
+  });
+}
+function fmtDate(iso){
+  const d = new Date(iso+'T00:00:00Z');
+  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric', timeZone:'UTC'});
+}
+function fmtShort(iso){
+  const d = new Date(iso+'T00:00:00Z');
+  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', timeZone:'UTC'});
+}
+
+function buildChart(series, width, height){
+  const allVals = series.flatMap(s => s.points.filter(p => p.v != null).map(p => p.v));
+  if (allVals.length === 0) return React.createElement('div', {style:{fontSize:'12px',color:'oklch(55% 0.01 250)',padding:'20px 0'}}, 'No data');
+  const min = Math.min(...allVals), max = Math.max(...allVals);
+  const pad = (max - min) * 0.15 || 5;
+  const lo = min - pad, hi = max + pad;
+  const n = series[0].points.length;
+  const xFor = i => (i / Math.max(1, n - 1)) * (width - 10) + 5;
+  const yFor = v => height - 6 - ((v - lo) / (hi - lo || 1)) * (height - 16);
+  const lines = series.map((s, si) => {
+    const pts = s.points.filter(p => p.v != null);
+    if (pts.length === 0) return null;
+    const d = pts.map((p, i) => `${i===0?'M':'L'} ${xFor(p.i).toFixed(1)} ${yFor(p.v).toFixed(1)}`).join(' ');
+    const last = pts[pts.length - 1];
+    return React.createElement('g', {key: si},
+      React.createElement('path', {d, fill:'none', stroke:s.color, strokeWidth:2, strokeLinecap:'round', strokeLinejoin:'round'}),
+      React.createElement('circle', {cx:xFor(last.i), cy:yFor(last.v), r:3.5, fill:s.color})
+    );
+  });
+  return React.createElement('svg', {width:'100%', height, viewBox:`0 0 ${width} ${height}`, preserveAspectRatio:'none'}, lines);
+}
+
+class Component extends DCLogic {
+  state = { view: 'snapshot', selectedSid: 'MSP', dataVolOpen: false, logVolOpen: false, freeAppOpen: false, freeDbOpen: false };
+
+  renderVals(){
+    const days = forwardFillVolumes(RAW_DAYS);
+    const latest = days[days.length - 1];
+    const sids = ['MSP', 'MGP', 'SPA'];
+    const alertHistoryDays = this.props.alertHistoryDays ?? 20;
+    const showTrends = this.props.showTrends ?? true;
+    const view = this.state.view;
+    const selectedSid = this.state.selectedSid;
+    const colorFor = { MSP: BLUE, MGP: 'oklch(62% 0.13 300)', SPA: 'oklch(60% 0.14 200)' };
+    const sidColor = colorFor[selectedSid];
+
+    // anomalies across window, scoped to the selected system
+    const windowDays = days.slice(-alertHistoryDays);
+    const sidAnomalies = [];
+    for (let di = windowDays.length - 1; di >= 0; di--) {
+      const day = windowDays[di];
+      const sys = day.systems[selectedSid];
+      if (!sys) continue;
+      for (const def of PARAM_DEFS) {
+        const val = sys[def.key];
+        if (isAnomaly(def, val)) {
+          sidAnomalies.push({
+            date: day.date, dateShort: fmtShort(day.date), sid: selectedSid, label: def.label, value: val,
+            color: /fail|down|error/i.test(val) ? RED : AMBER,
+            isLatest: day.date === latest.date
+          });
+        }
+      }
+    }
+    const activeAlerts = sidAnomalies.filter(a => a.isLatest);
+    const recentResolved = sidAnomalies.filter(a => !a.isLatest).slice(0, 4);
+
+    const latestSys = latest.systems[selectedSid] || {};
+    const score = Math.max(84, 100 - sidAnomalies.length * 6);
+    const healthColor = activeAlerts.length > 0 ? AMBER : GREEN;
+    const statusLabel = activeAlerts.length > 0 ? `${activeAlerts.length} issue${activeAlerts.length>1?'s':''} today` : 'Healthy';
+    const excludedFromChecks = ['dataVol', 'logVol', 'freeApp', 'freeDb'];
+    const params = PARAM_DEFS.filter(def => !excludedFromChecks.includes(def.key)).map(def => {
+      const val = latestSys[def.key] ?? '—';
+      const anomaly = isAnomaly(def, val);
+      return { label: def.label, value: val, color: anomaly ? AMBER : (def.info ? 'oklch(80% 0.005 250)' : GREEN) };
+    });
+    const systemCard = {
+      sid: selectedSid, name: SID_META[selectedSid], score,
+      ring: `conic-gradient(${healthColor} ${score}%, oklch(92% 0.005 250) 0)`,
+      color: healthColor, statusLabel,
+      dataVol: volumeInfo(latestSys.dataVol, fmtDate(latest.date)),
+      logVol: volumeInfo(latestSys.logVol, fmtDate(latest.date)),
+      freeApp: volumeInfo(latestSys.freeApp, fmtDate(latest.date)),
+      freeDb: volumeInfo(latestSys.freeDb, fmtDate(latest.date)),
+      params
+    };
+
+    const sidOptions = sids.map(sid => ({ sid, label: sid }));
+
+    const urlTiles = Object.keys(URL_META).map(key => {
+      const val = latest.urls[key] || '';
+      const ok = /accessable|accessible/i.test(val);
+      return { name: URL_META[key].name, host: URL_META[key].host, status: ok ? 'Reachable' : 'Unreachable', color: ok ? GREEN : RED };
+    });
+
+    // trend charts, scoped to the selected system
+    const appMemPoints = days.map((d, i) => ({ i, v: (d.systems[selectedSid] && d.systems[selectedSid].freeAppGB != null) ? d.systems[selectedSid].freeAppGB : null }));
+    const dbMemPoints = days.map((d, i) => ({ i, v: (d.systems[selectedSid] && d.systems[selectedSid].freeDbGB != null) ? d.systems[selectedSid].freeDbGB : null }));
+    const hasDbMem = dbMemPoints.some(p => p.v != null);
+    const dataVolPoints = days.map((d, i) => {
+      const parsed = d.systems[selectedSid] && parseVolumeGB(d.systems[selectedSid].dataVol);
+      return { i, v: parsed ? parsed.usedGB : null };
+    });
+    const logVolPoints = days.map((d, i) => {
+      const parsed = d.systems[selectedSid] && parseVolumeGB(d.systems[selectedSid].logVol);
+      return { i, v: parsed ? parsed.usedGB : null };
+    });
+    // App Server / Database "Used" trends: freeAppGB/freeDbGB are logged daily (unlike
+    // the descriptive strings), so pair the real daily free value with the last-known
+    // Total capacity (which is effectively constant) instead of forward-filling text.
+    const totalAppGB = totalFromLatestString(days, selectedSid, 'freeApp');
+    const freeAppPoints = days.map((d, i) => {
+      const g = d.systems[selectedSid] && d.systems[selectedSid].freeAppGB;
+      return { i, v: (totalAppGB != null && g != null) ? totalAppGB - g : null };
+    });
+    const totalDbGB = totalFromLatestString(days, selectedSid, 'freeDb');
+    const freeDbPoints = days.map((d, i) => {
+      const g = d.systems[selectedSid] && d.systems[selectedSid].freeDbGB;
+      return { i, v: (totalDbGB != null && g != null) ? totalDbGB - g : null };
+    });
+
+    const historyRows = days.slice().reverse().map(day => {
+      const sys = day.systems[selectedSid];
+      let status;
+      if (!sys) status = { color: 'oklch(85% 0.005 250)', note: 'No data' };
+      else {
+        const anomalies = PARAM_DEFS.filter(def => isAnomaly(def, sys[def.key]));
+        status = anomalies.length === 0
+          ? { color: GREEN, note: 'Normal' }
+          : { color: AMBER, note: anomalies.map(a => sys[a.key]).join('; ') };
+      }
+      return { dateShort: fmtDate(day.date), status };
+    });
+
+    const btnBase = { border:'none', background:'transparent', fontSize:'13px', fontWeight:600, padding:'8px 16px', borderRadius:'7px', color:'oklch(48% 0.01 250)' };
+    const btnActive = { ...btnBase, background: BLUE, color: 'white' };
+
+    return {
+      latestFormatted: fmtDate(latest.date),
+      selectedSid,
+      sidOptions,
+      selectSid: (e) => this.setState({ selectedSid: e.target.value }),
+      systemCard,
+      sidColor,
+      dataVolOpen: this.state.dataVolOpen,
+      toggleDataVol: () => this.setState(s => ({ dataVolOpen: !s.dataVolOpen })),
+      dataVolChevron: this.state.dataVolOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+      dataVolChart: buildChart([{ color: sidColor, points: dataVolPoints }], 520, 120),
+      logVolOpen: this.state.logVolOpen,
+      toggleLogVol: () => this.setState(s => ({ logVolOpen: !s.logVolOpen })),
+      logVolChevron: this.state.logVolOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+      logVolChart: buildChart([{ color: sidColor, points: logVolPoints }], 520, 120),
+      freeAppOpen: this.state.freeAppOpen,
+      toggleFreeApp: () => this.setState(s => ({ freeAppOpen: !s.freeAppOpen })),
+      freeAppChevron: this.state.freeAppOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+      freeAppChart: buildChart([{ color: sidColor, points: freeAppPoints }], 520, 120),
+      freeDbOpen: this.state.freeDbOpen,
+      toggleFreeDb: () => this.setState(s => ({ freeDbOpen: !s.freeDbOpen })),
+      freeDbChevron: this.state.freeDbOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+      freeDbChart: buildChart([{ color: sidColor, points: freeDbPoints }], 520, 120),
+      isSnapshot: view === 'snapshot',
+      isHistory: view === 'history',
+      showSnapshot: () => this.setState({ view: 'snapshot' }),
+      showHistory: () => this.setState({ view: 'history' }),
+      snapshotBtnStyle: view === 'snapshot' ? btnActive : btnBase,
+      historyBtnStyle: view === 'history' ? btnActive : btnBase,
+      alertsTitle: activeAlerts.length > 0 ? 'Active Alerts' : 'Alerts',
+      alertsCountLabel: activeAlerts.length > 0 ? `${activeAlerts.length} open` : 'All clear',
+      alertBorderColor: activeAlerts.length > 0 ? 'oklch(85% 0.05 70)' : 'oklch(89% 0.005 250)',
+      alertIconBg: activeAlerts.length > 0 ? AMBER : GREEN,
+      alertIconGlyph: activeAlerts.length > 0 ? '!' : '✓',
+      hasActiveAlerts: activeAlerts.length > 0,
+      noActiveAlerts: activeAlerts.length === 0,
+      activeAlerts,
+      hasRecentResolved: recentResolved.length > 0,
+      recentResolved,
+      urlTiles,
+      showTrends,
+      trendDays: windowDays.length,
+      hasDbMem,
+      noDbMem: !hasDbMem,
+      trendsGridCols: hasDbMem ? '1fr 1fr' : '1fr',
+      appMemChart: buildChart([{ color: sidColor, points: appMemPoints }], 520, 140),
+      dbMemChart: hasDbMem ? buildChart([{ color: sidColor, points: dbMemPoints }], 520, 140) : null,
+      historyRows
+    };
+  }
+}
+
+</script>
+</body>
+</html>
