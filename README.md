@@ -28,20 +28,24 @@ single-file prototype), and the dashboard structure follows the
 ```bash
 npm install          # installs both workspaces
 npm run setup        # starts Postgres, applies schema+seed, imports the workbook
-npm run dev          # API on :4000, dashboard on :5173
+npm run dev          # API on :4000, dashboard on :5173, batch monitor API on :8000
 ```
 
-Open <http://localhost:5173>.
+Open <http://localhost:5173> — the header has a tab to switch between the
+Landscape Health dashboard and the Batch Job Monitor. Everything the browser
+talks to is on port **4000/5173**; the Batch Job Monitor's Python backend is
+reverse-proxied under `/api/batch` (see below), so there's no second origin.
 
 Individual steps, if you prefer:
 
 ```bash
-npm run db:up        # docker compose up -d
-npm run migrate      # schema.sql + seed.sql
-npm run import       # parse the .xlsx into Postgres (idempotent)
-npm run dev:server   # API only
-npm run dev:client   # dashboard only
-npm run db:reset     # drop the volume and start clean
+npm run db:up               # docker compose up -d
+npm run migrate             # schema.sql + seed.sql
+npm run import              # parse the .xlsx into Postgres (idempotent)
+npm run dev:server          # API only
+npm run dev:client          # dashboard only
+npm run dev:batch-backend   # Batch Job Monitor's FastAPI backend only
+npm run db:reset            # drop the volume and start clean
 ```
 
 Copy `.env.example` to `.env` to override the connection string, port, or the
@@ -194,3 +198,44 @@ Checks come online one at a time: any check still lacking a path or a mapper is
 simply skipped while the configured ones are collected.
 
 Check on it with `curl localhost:4000/api/collector/status`.
+
+---
+
+## Batch Job Monitor (integrated app)
+
+`batch-monitor-backend/` and `client/src/batch-job-monitor/` are a **copy** of
+the separate `SAP_Batch_Job_Monitor` project (LangGraph agent that
+investigates failed SAP batch jobs, with mocked SAP/ServiceNow/notification
+adapters), pulled into this repo so it's reachable from the same dashboard —
+the original project is untouched.
+
+It keeps its own stack because it's Python (FastAPI + LangGraph), not
+Node — it cannot share this repo's Express process directly. Instead:
+
+- **Backend**: `batch-monitor-backend/` runs as its own `uvicorn` process on
+  port 8000. `server/src/index.js` reverse-proxies `/api/batch/*` to it
+  (`http-proxy-middleware`, stripping the `/api/batch` prefix), so the browser
+  only ever calls this repo's API on port 4000/5173 — never port 8000 directly.
+- **Frontend**: `client/src/batch-job-monitor/` is the original React
+  components/hooks/api-client, copied in as-is except `api/client.ts`, whose
+  `API_BASE` was changed from `http://127.0.0.1:8000` to the relative
+  `/api/batch` so it goes through the proxy above. `client/src/App.jsx` renders
+  it behind a tab alongside the existing `MonitoringDashboard`.
+
+### One-time setup
+
+```bash
+cd batch-monitor-backend
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+```
+
+Credentials live in `batch-monitor-backend/.env` (not the repo-root `.env` —
+`pydantic-settings` reads that file directly): `GROQ_API_KEY` plus the
+per-node model overrides and the `*_CLIENT_IMPL=mock` adapter switches, copied
+from the source project. The root `.env` only carries `BATCH_MONITOR_URL` /
+`BATCH_MONITOR_PORT`, which the proxy uses to find it.
+
+`npm run dev` starts it (`dev:batch-backend`) alongside the API, dashboard,
+and collector worker. First boot ingests the sample known-issues docs into a
+local Chroma store under `batch-monitor-backend/data/chroma/`.

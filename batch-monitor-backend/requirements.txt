@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+langgraph
+langchain-core
+langchain-groq
+langchain-huggingface
+sentence-transformers
+chromadb
+pydantic-settings
+python-dotenv
+sse-starlette
+httpx
+pytest
+pytest-asyncio

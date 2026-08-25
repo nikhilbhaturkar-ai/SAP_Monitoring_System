@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { config } from './config.js';
 import { api } from './routes/api.js';
 import { pool } from './db.js';
@@ -8,8 +9,21 @@ import { pool } from './db.js';
 const app = express();
 
 app.use(cors({ origin: config.corsOrigin }));
-app.use(express.json());
 app.use(morgan('dev'));
+
+// Batch Job Monitor's FastAPI backend, reverse-proxied so the browser only
+// ever talks to this API. Mounted ahead of express.json() — it streams SSE
+// responses (/stream) and must not have its request/response bodies touched.
+app.use(
+  '/api/batch',
+  createProxyMiddleware({
+    target: config.batchMonitorUrl,
+    changeOrigin: true,
+    pathRewrite: { '^/api/batch': '' },
+  })
+);
+
+app.use(express.json());
 
 app.use('/api', api);
 

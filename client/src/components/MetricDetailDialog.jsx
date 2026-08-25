@@ -38,7 +38,25 @@ const DETAIL_TABLE_SPECS = {
     heading: (n) => `Backup log (${n})`,
     caption: (sid) => `Backup runs for ${sid}, most recent first`,
     columns: ['Type', 'Started', 'Ended', 'State'],
-    cells: (b) => [b.type ?? '—', b.start ?? '—', b.end ?? '—', b.state ?? '—'],
+    cells: (b) => {
+      // entry_state from Z_BACKUP_SRV is literally "successful" or "failed" —
+      // same colour + glyph + label convention as every other status in this
+      // dashboard (StatusDot), not just plain text, so a failed run stands out
+      // in the log without reading every row.
+      const isSuccess = /success/i.test(b.state || '');
+      return [
+        b.type ?? '—',
+        b.start ?? '—',
+        b.end ?? '—',
+        <>
+          <StatusDot
+            status={isSuccess ? 'ok' : 'critical'}
+            srLabel={isSuccess ? 'Successful' : 'Failed'}
+          />
+          {b.state ?? '—'}
+        </>,
+      ];
+    },
   },
   sm12: {
     heading: (n) => `Active lock entries (${n})`,

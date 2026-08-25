@@ -32,12 +32,36 @@ const ALWAYS_CRITICAL_CHECKS = new Set(['st22', 'sm51', 'sm13', 'sm50']);
 // table is the same idea: a handful of active locks is normal SAP operation,
 // worth seeing on demand rather than only once something is wrong. sm50 is
 // NOT in this set — "All Ok" has no interesting worker list behind it, so
-// its dialog only opens once WP_GT_THRESHOLD actually flags something.
-const ALWAYS_OPENABLE_CHECKS = new Set(['sm51', 'sm12']);
+// its dialog only opens once WP_GT_THRESHOLD actually flags something. st06's
+// three-way Memory/Swap/CPU breakdown (see osStatusOf below) is exactly the
+// same case as sm51 — "which of the three passed" is worth a click on a
+// healthy reading, not just a flagged one. backup is the same again: its
+// icon replaces the pass/fail sentence entirely, so the log behind it has to
+// be reachable by clicking regardless of whether the latest run passed.
+const ALWAYS_OPENABLE_CHECKS = new Set(['sm51', 'sm12', 'st06', 'backup']);
 
 function severityOf(rawValue, checkKey) {
   if (ALWAYS_CRITICAL_CHECKS.has(checkKey)) return 'critical';
   return /fail|down|error|unreachable/i.test(rawValue || '') ? 'critical' : 'warning';
+}
+
+// mappers.js's st06 case formats the reading as
+// "All OK - Mem: Memory Ok!, Swap: Swap Ok!, CPU: CPU Ok!" when healthy, or
+// "Mem: X, Swap: Y, CPU: Z" (no "All OK -" prefix) the moment any one of the
+// three isn't — same three labels either way, so they're pulled back out
+// here for the tile's checkbox row rather than re-parsed on the client.
+const OS_STATUS_RE = /Mem:\s*([^,]+),\s*Swap:\s*([^,]+),\s*CPU:\s*(.+)$/i;
+
+function osStatusOf(rawValue) {
+  const match = OS_STATUS_RE.exec(rawValue || '');
+  if (!match) return null;
+  const [, mem, swap, cpu] = match;
+  const subChecks = [
+    { key: 'mem', label: 'Memory', ok: /ok/i.test(mem) },
+    { key: 'swap', label: 'Swap', ok: /ok/i.test(swap) },
+    { key: 'cpu', label: 'CPU', ok: /ok/i.test(cpu) },
+  ];
+  return { allOk: subChecks.every((c) => c.ok), subChecks };
 }
 
 export async function buildDashboard(sid, windowDays = 20) {
@@ -68,27 +92,37 @@ export async function buildDashboard(sid, windowDays = 20) {
     throw err;
   }
 
-  const [observations, volumeRows, anomalyRows, urlRows, landscape] = await Promise.all([
-    repo.getSystemObservations(sid, windowDays),
-    repo.getVolumeSeries(sid, VOLUME_KEYS, windowDays),
-    repo.getAnomalies(sid, windowDays),
-    repo.getUrlStatuses(),
-    repo.getLandscapeSummary(windowDays),
-  ]);
+  const [observations, checksSnapshot, volumeRows, anomalyRows, urlRows, landscape] =
+    await Promise.all([
+      repo.getSystemObservations(sid, windowDays),
+      repo.getLatestChecksSnapshot(sid, windowDays),
+      repo.getVolumeSeries(sid, VOLUME_KEYS, windowDays),
+      repo.getAnomalies(sid, windowDays),
+      repo.getUrlStatuses(),
+      repo.getLandscapeSummary(windowDays),
+    ]);
 
   const latestLabel = formatDate(latestDate);
-  const latestObs = observations.filter((o) => o.run_date === latestDate);
-  const byKey = new Map(latestObs.map((o) => [o.check_key, o]));
 
-  // Detail rows are the evidence for a flagged check, so for st22/backup/sm12
+  // The checks grid reads each check's own latest reading (checksSnapshot),
+  // not just whatever the grid's single latest run happened to catch — see
+  // getLatestChecksSnapshot for why. `observations` (day-collapsed, via
+  // daily_runs) stays the source for trends and per-check reading history
+  // below, where the one-row-per-day shape is correct.
+  const byKey = new Map(checksSnapshot.map((o) => [o.check_key, o]));
+  const latestObs = checksSnapshot;
+
+  // Detail rows are the evidence for a flagged check, so for st22/sm12
   // they're only fetched when the check is actually anomalous on the latest
   // run — a healthy run has nothing to show, and the query is skipped rather
   // than run and discarded.
   //
-  // sm51 is the one exception: its server list is reference information
-  // ("what app servers make up this system"), not failure evidence, so it's
-  // fetched whenever sm51 has a reading at all — Active or NOT-Active — which
-  // is what makes "show me the app servers" work on a healthy system.
+  // sm51 and backup are the exceptions: sm51's server list is reference
+  // information ("what app servers make up this system"), not failure
+  // evidence, and backup's log is exactly what the icon's click-through is
+  // for — the recent run history behind the pass/fail icon, not just proof
+  // of a failure — so both are fetched whenever the check has a reading at
+  // all, healthy or not.
   //
   // Rows are mapped into the same field names detailFor() exposes on the API,
   // right where they're fetched, rather than threading raw column names
@@ -108,7 +142,7 @@ export async function buildDashboard(sid, windowDays = 20) {
           }))
         )
       : [],
-    byKey.get('backup')?.is_anomaly
+    byKey.has('backup')
       ? repo.getLatestBackupLog(sid).then((rows) =>
           rows.map((b) => ({
             type: b.entry_type,
@@ -280,6 +314,18 @@ export async function buildDashboard(sid, windowDays = 20) {
       detail: o.is_anomaly || ALWAYS_OPENABLE_CHECKS.has(o.check_key) ? detailFor(o) : null,
       source: o.source,
       hasLiveApi,
+      // Set when this check's poll failed on the latest run and the tile is
+      // showing its last successful reading instead — see the byKey gap-fill
+      // above.
+      carriedForwardNote:
+        o.run_date !== latestDate ? `Latest successful reading — ${formatDateShort(o.run_date)}` : null,
+      osStatus: o.check_key === 'st06' ? osStatusOf(o.raw_value) : null,
+      // Backup is pass/fail, not a value worth reading as text — the tile
+      // shows a success/failure icon in place of the "Backup successful" /
+      // "Backup failed" sentence. is_anomaly is already the true/false this
+      // check reduces to (normal_text = "backup successful"), so it's reused
+      // rather than re-testing raw_value here too.
+      statusIcon: o.check_key === 'backup' ? { ok: !o.is_anomaly } : null,
     }));
 
   const score = healthScore(alerts.length);

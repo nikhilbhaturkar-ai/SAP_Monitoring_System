@@ -53,10 +53,21 @@ export function paramTile(param) {
   const hasReading = raw !== '' && raw !== '—';
   const match = hasReading ? NUMERIC_RE.exec(raw) : null;
 
-  const value = match ? match[0] : hasReading ? raw : '—';
+  // OS Monitoring (ST06) replaces the raw "Mem: …, Swap: …, CPU: …" sentence
+  // with a short headline — the sentence itself still reaches the tile via
+  // `hint` and the detail dialog's reading line.
+  const value = param.osStatus
+    ? param.osStatus.allOk
+      ? 'All Ok'
+      : 'Attention'
+    : match
+      ? match[0]
+      : hasReading
+        ? raw
+        : '—';
   // Only worth repeating underneath when the headline actually dropped part of
   // the reading — a bare count like "2" has nothing left to say twice.
-  const note = match && match[0] !== raw ? raw : null;
+  const note = !param.osStatus && match && match[0] !== raw ? raw : null;
 
   return {
     key: param.key,
@@ -67,16 +78,28 @@ export function paramTile(param) {
     unit: null,
     note,
     hint: hasReading ? `Recorded reading: “${raw}”` : 'No reading recorded on this run.',
-    scale: valueScale(value, { numeric: Boolean(match) }),
+    // "All Ok" / "Attention" are short words, not numbers — same non-numeric
+    // sizing sm13's "Update is Active" sentence gets, not the large digit
+    // scale reserved for counts/amounts.
+    scale: param.osStatus ? valueScale(value) : valueScale(value, { numeric: Boolean(match) }),
     meter: null,
     pie: null,
     severity: param.severity ?? null,
     // Present only on flagged checks — it is what makes the tile openable.
     detail: param.detail ?? null,
-    sourceNote: sourceNote(param.source, param.hasLiveApi),
+    sourceNote: param.carriedForwardNote ?? sourceNote(param.source, param.hasLiveApi),
     // Exposed directly (not just folded into sourceNote) because the detail
     // dialog shows it as its own fact row, next to which run it's from.
     hasLiveApi: param.hasLiveApi,
+    // OS Monitoring (ST06) only: swaps the plain reading for a centered
+    // headline plus a Memory/Swap/CPU checkbox row. Everything else about the
+    // tile (status colour, click-to-open detail) is untouched.
+    osStatus: param.osStatus ?? null,
+    // Backup only: swaps the "Backup successful" / "Backup failed" sentence
+    // for a single success/failure icon — the reading is pass/fail, and the
+    // sentence adds nothing an icon plus the existing status word doesn't
+    // already say.
+    statusIcon: param.statusIcon ?? null,
   };
 }
 

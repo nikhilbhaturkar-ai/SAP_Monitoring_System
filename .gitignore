@@ -4,3 +4,10 @@ dist/
 *.log
 /.env.example
 /*.env
+
+# Batch Job Monitor (Python backend)
+batch-monitor-backend/.venv/
+batch-monitor-backend/.env
+batch-monitor-backend/data/chroma/
+batch-monitor-backend/**/__pycache__/
+batch-monitor-backend/.pytest_cache/

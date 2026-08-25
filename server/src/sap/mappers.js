@@ -69,10 +69,23 @@ export function toRawValue(checkKey, payload) {
     }
 
     // --- OS free space -------------------------------------------------------
-    case 'freeApp':
-    case 'freeDb':
-      // TODO(SAP): e.g. `Total: ${payload.totalGB}GB / Free: ${payload.freeGB} GB`
-      return null;
+    case 'freeApp': {
+      // Z_ST06_DATA_SRV (sap-client=150): { TOTAL_MEM, AVAILABLE_MEM, ... } in
+      // GB as numeric strings — same call as st06, different client.
+      const total = Number(payload?.TOTAL_MEM);
+      const free = Number(payload?.AVAILABLE_MEM);
+      if (!Number.isFinite(total) || !Number.isFinite(free)) return null;
+      return `Total: ${total} GB / Free: ${free} GB`;
+    }
+
+    case 'freeDb': {
+      // Z_DATA_VOL_SRV (sap-client=150): { USED_GB, LIMIT_GB } — same shape as
+      // dataVol, different client.
+      const used = Number(payload?.USED_GB);
+      const limit = Number(payload?.LIMIT_GB);
+      if (!Number.isFinite(used) || !Number.isFinite(limit)) return null;
+      return `${used} GB /${limit} GB`;
+    }
 
     // --- Transaction-code checks --------------------------------------------
     case 'st22':
@@ -123,16 +136,57 @@ export function toRawValue(checkKey, payload) {
           : `Count of WPs running for more than 100000 seconds = ${overThreshold}`;
       }
 
-    case 'st06':
-    case 'sm37':
+    case 'st06': {
+      // Z_ST06_DATA_SRV: { MEM_OK, SWAP_OK, CPU_OK, ... } — each an SAP-worded
+      // status string ("Memory Ok!"). normal_text is "all ok", so the healthy
+      // reading must literally contain that phrase; "All OK" lowercases to it.
+      const memOk = typeof payload?.MEM_OK === 'string' ? payload.MEM_OK : '';
+      const swapOk = typeof payload?.SWAP_OK === 'string' ? payload.SWAP_OK : '';
+      const cpuOk = typeof payload?.CPU_OK === 'string' ? payload.CPU_OK : '';
+      if (!memOk && !swapOk && !cpuOk) return null;
+      const allOk = [memOk, swapOk, cpuOk].every((s) => /ok/i.test(s));
+      const detail = `Mem: ${memOk || 'n/a'}, Swap: ${swapOk || 'n/a'}, CPU: ${cpuOk || 'n/a'}`;
+      return allOk ? `All OK - ${detail}` : detail;
+    }
+
+    case 'sm37': {
+      // Z_SM37_JOBS_SRV: { NO_OF_LONG_RUNNING_JOBS, LONG_RUNNING_JOBLIST }.
+      const count = Number(payload?.NO_OF_LONG_RUNNING_JOBS);
+      if (!Number.isFinite(count)) return null;
+      return count === 0 ? 'No long running jobs found' : `${count} long running job(s) found`;
+    }
+
     case 'smq1':
-    case 'smq2':
+    case 'smq2': {
+      // Z_SMQ1_OUTB_SRV / Z_SMQ2_INB_SRV: { NO_OF_ERROR_QUEUES, ERROR_QTABLE }.
+      const count = Number(payload?.NO_OF_ERROR_QUEUES);
+      if (!Number.isFinite(count)) return null;
+      return count === 0 ? 'No queues found' : `${count} error queue(s) found`;
+    }
+
     case 'sm20':
-    case 'sm21':
-    case 'sm58':
-      // TODO(SAP): map the API result to text containing the check's
-      // normal_text when healthy.
-      return null;
+      // Z_SM20_LOG_SRV: { OUTPUT, AUDIT_FILE }. OUTPUT already carries SAP's
+      // own wording ("No user critical activity"), passed through verbatim.
+      return typeof payload?.OUTPUT === 'string' && payload.OUTPUT.trim() !== ''
+        ? payload.OUTPUT
+        : null;
+
+    case 'sm21': {
+      // Z_SM21_LOG_SRV: { NO_OF_SYSLOG_MSG, SYSLOG_ENTRIES }.
+      const count = Number(payload?.NO_OF_SYSLOG_MSG);
+      if (!Number.isFinite(count)) return null;
+      return count === 0
+        ? 'No high priority entry found'
+        : `${count} high priority entr${count === 1 ? 'y' : 'ies'} found`;
+    }
+
+    case 'sm58': {
+      // Z_SM58_TRFC_SRV: { NO_OF_TRFCS, ARFCISTATE }. is_info in seed.sql (no
+      // normal_text), so this is a plain count display, not an anomaly check.
+      const count = Number(payload?.NO_OF_TRFCS);
+      if (!Number.isFinite(count)) return null;
+      return `${count} pending tRFC(s)`;
+    }
 
     // --- Endpoint reachability ----------------------------------------------
     case 'urlStatus':

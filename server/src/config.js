@@ -37,4 +37,8 @@ export const config = {
       WEBDISP: process.env.SAP_BASE_URL_WEBDISP || '',
     },
   },
+
+  // Batch Job Monitor: separate Python/FastAPI process (batch-monitor-backend/),
+  // reverse-proxied under /api/batch so the browser only ever talks to this API.
+  batchMonitorUrl: process.env.BATCH_MONITOR_URL || 'http://127.0.0.1:8000',
 };

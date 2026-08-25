@@ -49,6 +49,49 @@ export async function getLatestRunDateForSystem(sid) {
   return rows[0]?.run_date ?? null;
 }
 
+/**
+ * Each check's most recent successful reading for one system, one row per
+ * `check_key` — the checks grid's "what's true right now" snapshot.
+ *
+ * Deliberately reads `monitoring_runs` directly rather than through
+ * `daily_runs`, unlike every other query in this file. `daily_runs` collapses
+ * a day to its single newest *populated* run, which is right for trends and
+ * the History Log (one row per day) but wrong here: the SAP collector writes
+ * a run every 15 minutes, and a given check can fail one cycle (host
+ * timeout) after succeeding on an earlier cycle the same day. Collapsing to
+ * only the day's last run would then drop that check from the grid entirely,
+ * even though it reported cleanly minutes before. Taking each check's own
+ * latest row across all of that system's runs — not the whole grid's latest
+ * run — fixes that without touching the daily-run invariant anywhere else.
+ */
+export async function getLatestChecksSnapshot(sid, windowDays = 20) {
+  const { rows } = await query(
+    `SELECT DISTINCT ON (o.check_key)
+            o.check_key,
+            c.label      AS check_label,
+            c.normal_text,
+            c.is_info,
+            c.is_volume,
+            c.sort_order AS check_order,
+            o.raw_value,
+            o.used_gb,
+            o.total_gb,
+            o.free_gb,
+            o.is_anomaly,
+            mr.run_date,
+            mr.source
+       FROM observations o
+       JOIN monitoring_runs mr ON mr.id = o.run_id
+       JOIN systems s          ON s.id = o.system_id
+       JOIN checks c           ON c.key = o.check_key
+      WHERE s.sid = $1
+        AND mr.run_date >= (CURRENT_DATE - $2::int)
+      ORDER BY o.check_key, mr.run_at DESC`,
+    [sid, windowDays]
+  );
+  return rows;
+}
+
 /** Distinct run dates, newest first, capped at `limit`. */
 export async function listRunDates(limit = 20) {
   const { rows } = await query(

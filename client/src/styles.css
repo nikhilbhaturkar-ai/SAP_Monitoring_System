@@ -741,6 +741,100 @@ button {
   border-radius: 4px;
 }
 
+/*
+ * Backup: a single large success/failure icon stands in for the tile's
+ * headline reading. Sized well past the status-glyph badges used everywhere
+ * else in the grid (this *is* the reading, not a decoration beside one).
+ */
+.mtile-status-icon-btn {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: default;
+}
+
+.mtile-status-icon-btn:not(:disabled) {
+  cursor: pointer;
+}
+
+.mtile-status-icon-btn:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+
+.mtile-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/*
+ * OS Monitoring (ST06): the headline reading centered above a row of the
+ * three checks behind it. A <button> like .mtile-value-button, not a link,
+ * for the same reason — it opens the detail dialog rather than navigating.
+ */
+.mtile-os {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: center;
+}
+
+.mtile-os:disabled {
+  cursor: default;
+}
+
+.mtile-os-value {
+  text-align: center;
+}
+
+.mtile-os-checks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mtile-os-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.mtile-os:not(:disabled):hover .mtile-os-value,
+.mtile-os:not(:disabled):focus-visible .mtile-os-value {
+  text-decoration: underline;
+  text-decoration-color: var(--text-primary);
+  text-underline-offset: 4px;
+}
+
+.mtile-os:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 /* ── Detail dialog ───────────────────────────────────────────────────────── */
 .detail-dialog {
   width: min(560px, calc(100vw - 32px));
@@ -1081,4 +1175,26 @@ button {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+.app-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 10px 24px 0;
+}
+
+.app-switcher-tab {
+  padding: 8px 16px;
+  border: 1px solid var(--gridline, #d8dde3);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: var(--panel, #f4f5f7);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.app-switcher-tab.is-active {
+  background: var(--surface, #fff);
+  font-weight: 600;
 }

@@ -78,17 +78,63 @@ export const CHECK_ENDPOINTS = [
     path: '/sap/bc/abap/z_sm50_wp_srv/sm50?sap-client=100',
     appliesTo: 'sap',
   },
-  { checkKey: 'st06', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
-  { checkKey: 'sm37', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
-  { checkKey: 'smq1', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
-  { checkKey: 'smq2', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
-  { checkKey: 'sm20', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
-  { checkKey: 'sm21', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
-  { checkKey: 'sm58', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
+  {
+    checkKey: 'st06',
+    method: 'GET',
+    path: '/sap/bc/abap/z_st06_data_srv/st06?sap-client=150',
+    appliesTo: 'sap',
+  },
+  {
+    checkKey: 'sm37',
+    method: 'GET',
+    path: '/sap/bc/abap/z_sm37_jobs_srv/sm37?sap-client=150',
+    appliesTo: 'sap',
+  },
+  {
+    checkKey: 'smq1',
+    method: 'GET',
+    path: '/sap/bc/abap/z_smq1_outb_srv/smq1?sap-client=150',
+    appliesTo: 'sap',
+  },
+  {
+    checkKey: 'smq2',
+    method: 'GET',
+    path: '/sap/bc/abap/z_smq2_inb_srv/smq2?sap-client=150',
+    appliesTo: 'sap',
+  },
+  {
+    checkKey: 'sm20',
+    method: 'GET',
+    path: '/sap/bc/abap/z_sm20_log_srv/sm20?sap-client=150',
+    appliesTo: 'sap',
+  },
+  {
+    checkKey: 'sm21',
+    method: 'GET',
+    path: '/sap/bc/abap/z_sm21_log_srv/sm21?sap-client=150',
+    appliesTo: 'sap',
+  },
+  {
+    checkKey: 'sm58',
+    method: 'GET',
+    path: '/sap/bc/abap/z_sm58_trfc_srv/sm58?sap-client=150',
+    appliesTo: 'sap',
+  },
 
-  // OS-level free space
-  { checkKey: 'freeApp', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
-  { checkKey: 'freeDb', method: 'GET', path: null, appliesTo: 'sap' }, // TODO(SAP)
+  // OS-level free space (item 17/18 reuse the ST06 / DBA Cockpit services at
+  // sap-client=150, distinct from st06's/dataVol's own client=100 calls)
+  {
+    checkKey: 'freeApp',
+    method: 'GET',
+    path: '/sap/bc/abap/z_st06_data_srv/st06?sap-client=150',
+    appliesTo: 'sap',
+  },
+  {
+    checkKey: 'freeDb',
+    method: 'GET',
+    path: '/sap/bc/abap/z_data_vol_srv/data_volume?sap-client=150',
+    appliesTo: 'sap',
+  },
 
   // Endpoint tiles: reachability of the published URLs
   { checkKey: 'urlStatus', method: 'GET', path: null, appliesTo: 'url' }, // TODO(SAP)
