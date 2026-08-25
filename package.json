@@ -1,29 +1,38 @@
 {
   "name": "sap-monitoring-system",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "SAP Basis landscape health dashboard — Node.js + Express + PostgreSQL API with a React front end.",
-  "workspaces": [
-    "server",
-    "client"
-  ],
+  "type": "module",
+  "description": "SAP Basis landscape health dashboard — single Next.js app (App Router) with route-handler API on raw pg, plus the Batch Job Monitor (proxied to a separate FastAPI backend).",
   "scripts": {
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d",
-    "migrate": "npm run migrate --workspace server",
-    "import": "npm run import --workspace server",
-    "collect": "npm run collect --workspace server",
-    "worker": "npm run worker --workspace server",
+    "migrate": "node scripts/migrate.js",
+    "import": "node scripts/import-excel.js",
+    "collect": "node scripts/collect.js",
+    "worker": "node scripts/worker.js",
     "setup": "npm run db:up && npm run migrate && npm run import",
-    "dev": "concurrently -n api,web,worker,batch -c cyan,magenta,yellow,green \"npm run dev --workspace server\" \"npm run dev --workspace client\" \"npm run worker --workspace server\" \"npm run dev:batch-backend\"",
-    "dev:server": "npm run dev --workspace server",
-    "dev:client": "npm run dev --workspace client",
+    "dev": "concurrently -n web,worker,batch -c magenta,yellow,green \"next dev\" \"npm run worker\" \"npm run dev:batch-backend\"",
+    "dev:web": "next dev",
     "dev:batch-backend": "cd batch-monitor-backend && .venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000",
-    "build": "npm run build --workspace client",
-    "start": "npm run start --workspace server"
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
+    "next": "^16.3.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "@types/node": "^26.3.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "concurrently": "^9.1.2",
+    "typescript": "^7.0.2"
   }
 }
