@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api.js';
-import { AlertsPanel } from './AlertsPanel.jsx';
+import { AlertsBell } from './AlertsBell.jsx';
 import { MetricsOverview } from './MetricsOverview.jsx';
 import { TrendPanel } from './TrendPanel.jsx';
 import { HistoryTable } from './HistoryTable.jsx';
-import { StatusChip } from './StatusChip.jsx';
 import { statusOf } from '../lib/status.js';
 
 const LOGO_URL = '/mpower-logo.png';
@@ -122,13 +121,8 @@ export default function MonitoringDashboard() {
           {dashboard.latestRun.label}
         </span>
 
-        <span className="scope-chip scope-chip-static">
-          <span className="scope-chip-label">Source</span>
-          {card.hasLiveApi ? 'Live SAP API' : 'ERP Monitoring Log (no live API)'}
-        </span>
-
         <span className="filters-spacer" />
-        <StatusChip status={headStatus} label={card.statusLabel} />
+        <AlertsBell alerts={dashboard.alerts} sid={card.sid} />
       </div>
 
       <nav className="breadcrumb" aria-label="Breadcrumb">
@@ -183,11 +177,6 @@ export default function MonitoringDashboard() {
       <div className={loading && hasRendered.current ? 'is-stale' : undefined}>
         {view === 'snapshot' ? (
           <>
-            <AlertsPanel
-              alerts={dashboard.alerts}
-              sid={card.sid}
-              windowDays={dashboard.windowDays}
-            />
             <MetricsOverview
               card={card}
               endpoints={dashboard.endpoints}

@@ -117,10 +117,23 @@ export function MetricTile({ tile, onOpenDetail }) {
             aria-haspopup="dialog"
             title={`Show details for ${tile.label}`}
           >
-            <span className={`mtile-value mtile-value-${tile.scale} mtile-value-link`}>
-              {tile.value}
-              {tile.unit && <span className="mtile-unit">{tile.unit}</span>}
-            </span>
+            {tile.linkPrefix ? (
+              /*
+               * Count-phrase reading ("4 errors found"): the whole tile is
+               * still the click target (title + aria-haspopup above cover
+               * that), but only the number is underlined — the surrounding
+               * words are grammar, not the thing being drilled into.
+               */
+              <span className={`mtile-value mtile-value-${tile.scale}`}>
+                <span className="mtile-value-link-inline">{tile.linkPrefix}</span>
+                {tile.value.slice(tile.linkPrefix.length)}
+              </span>
+            ) : (
+              <span className={`mtile-value mtile-value-${tile.scale} mtile-value-link`}>
+                {tile.value}
+                {tile.unit && <span className="mtile-unit">{tile.unit}</span>}
+              </span>
+            )}
             <span className="visually-hidden"> - show details</span>
           </button>
         ) : (

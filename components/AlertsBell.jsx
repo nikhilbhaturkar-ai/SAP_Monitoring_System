@@ -1,0 +1,54 @@
+import { StatusDot } from './StatusChip.jsx';
+
+/**
+ * Compact bell replacing the old "N issues today" chip. Active alerts move
+ * into a hover popup so the scope bar stays a single line.
+ */
+export function AlertsBell({ alerts, sid }) {
+  const active = alerts?.active ?? [];
+  const hasActive = active.length > 0;
+
+  return (
+    <div className="alerts-bell">
+      <button
+        type="button"
+        className={`alerts-bell-trigger${hasActive ? ' has-active' : ''}`}
+        aria-haspopup="true"
+        aria-label={hasActive ? `${active.length} active alerts` : 'No active alerts'}
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M12 2a1 1 0 0 1 1 1v1.06c3.39.49 6 3.4 6 6.94v4l1.6 2.13a1 1 0 0 1-.8 1.6H8.2a5.8 5.8 0 0 0 3.6 1.27 5.8 5.8 0 0 0 3.14-.92 1 1 0 1 1 1.08 1.68A7.8 7.8 0 0 1 8.06 20a1 1 0 0 1 .17-1.98A3.79 3.79 0 0 1 8 17.6l-3.8.05a1 1 0 0 1-.8-1.6L5 13.94v-4c0-3.55 2.61-6.45 6-6.94V2a1 1 0 0 1 1-1Z"
+          />
+        </svg>
+        {hasActive && <span className="alerts-bell-badge">{active.length}</span>}
+      </button>
+
+      <div className="alerts-bell-popup" role="dialog" aria-label="Active alerts">
+        <div className="alerts-bell-popup-title">
+          {hasActive ? `${active.length} active alert${active.length > 1 ? 's' : ''}` : 'No active alerts'}
+        </div>
+
+        {hasActive ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {active.map((alert, i) => (
+              <div className="alert-row" key={`${alert.date}-${alert.label}-${i}`}>
+                <StatusDot status={alert.severity} srLabel={alert.severity} />
+                <span className="alert-date">{alert.dateShort}</span>
+                <span className="alert-body">
+                  <strong>{alert.label}</strong> — {alert.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+            All monitored parameters for <strong>{sid}</strong> were within normal range on the
+            latest run.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -8,7 +8,11 @@ export function StatusChip({ status, label, className = '' }) {
   const meta = statusOf(status);
   return (
     <span className={`status status-text-${status} ${className}`}>
-      <span className="status-glyph" style={{ background: meta.color }} aria-hidden="true">
+      <span
+        className={`status-glyph${status === 'critical' ? ' status-glyph-critical' : ''}`}
+        style={{ background: meta.color }}
+        aria-hidden="true"
+      >
         {meta.glyph}
       </span>
       <span>{label ?? meta.label}</span>
@@ -21,7 +25,11 @@ export function StatusDot({ status, srLabel }) {
   const meta = statusOf(status);
   return (
     <>
-      <span className="status-glyph" style={{ background: meta.color }} aria-hidden="true">
+      <span
+        className={`status-glyph${status === 'critical' ? ' status-glyph-critical' : ''}`}
+        style={{ background: meta.color }}
+        aria-hidden="true"
+      >
         {meta.glyph}
       </span>
       <span className="visually-hidden">{srLabel ?? meta.label}: </span>
