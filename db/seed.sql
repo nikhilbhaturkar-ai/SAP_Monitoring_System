@@ -22,7 +22,7 @@ ON CONFLICT (sid) DO UPDATE
 INSERT INTO checks (key, label, normal_text, is_info, is_volume, sort_order) VALUES
   ('dataVol', 'DBA Cockpit — Data Volume',   NULL,                          TRUE,  TRUE,  10),
   ('logVol',  'DBA Cockpit — Log Volume',    NULL,                          TRUE,  TRUE,  20),
-  ('st22',    'ST22 — ABAP Runtime Errors',  '0',                           FALSE, FALSE, 30),
+  ('st22',    'ST22 — ABAP Runtime Errors',  '0',                           FALSE, FALSE, 157),
   ('backup',  'Backup',                      'backup successful',           FALSE, FALSE, 40),
   ('sm13',    'SM13 — Update Requests',      'active',                      FALSE, FALSE, 50),
   ('sm12',    'SM12 — Lock Entries',         NULL,                          TRUE,  FALSE, 60),
@@ -35,6 +35,8 @@ INSERT INTO checks (key, label, normal_text, is_info, is_volume, sort_order) VAL
   ('sm20',    'SM20 — Security Audit Log',   'no user critical activity',   FALSE, FALSE, 130),
   ('sm21',    'SM21 — System Log',           'no high priority entry found',FALSE, FALSE, 140),
   ('sm58',    'SM58 — Transactional RFC',    NULL,                          TRUE,  FALSE, 150),
+  ('cancel',  'Cancelled Jobs',              'no cancelled jobs',           FALSE, FALSE, 155),
+  ('strust',  'STRUST — SSL Certificates',   '0',                           FALSE, FALSE, 30),
   ('freeApp', 'Free Memory — App Server',    NULL,                          TRUE,  TRUE,  160),
   ('freeDb',  'Free Memory — Database',      NULL,                          TRUE,  TRUE,  170),
   ('urlStatus','Endpoint Availability',      'accessable',                  FALSE, FALSE, 180)

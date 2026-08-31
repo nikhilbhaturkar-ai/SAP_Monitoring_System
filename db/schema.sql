@@ -202,10 +202,123 @@ CREATE TABLE IF NOT EXISTS sm50_workers (
   server_name   TEXT,          -- SERVER_NAME
   wp_user       TEXT,          -- USER_NAME
   wp_program    TEXT,          -- WP_PROGRAM (falls back to MAIN_PROGRAM if blank)
-  wp_cpu        TEXT           -- CPU (already formatted HH:MM:SS)
+  wp_cpu        TEXT,          -- CPU (already formatted HH:MM:SS)
+  wp_pid        INTEGER,       -- PID
+  wait_priority TEXT           -- WAIT_FOR_PRIORITY_DISP: High, Medium, Low, …
 );
 CREATE INDEX IF NOT EXISTS sm50_workers_run_system_idx
   ON sm50_workers (run_id, system_id);
+ALTER TABLE sm50_workers ADD COLUMN IF NOT EXISTS wp_pid INTEGER;
+ALTER TABLE sm50_workers ADD COLUMN IF NOT EXISTS wait_priority TEXT;
+
+-- ---------------------------------------------------------------------------
+-- SM37 background job detail: the long-running job list behind an sm37
+-- observation's headline count. Z_SM37_JOBS_SRV: { NO_OF_LONG_RUNNING_JOBS,
+-- LONG_RUNNING_JOBLIST: [{ JOBNAME, SDLSTRTDT, SDLSTRTTM, … }] }.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sm37_jobs (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  job_name      TEXT,          -- JOBNAME
+  sched_date    DATE,          -- SDLSTRTDT
+  sched_time    TEXT           -- SDLSTRTTM, kept as SAP's HH:MM:SS text rather than parsed
+);
+CREATE INDEX IF NOT EXISTS sm37_jobs_run_system_idx
+  ON sm37_jobs (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Cancelled job detail: the cancelled-job list behind a cancel observation's
+-- headline count. Z_CANCEL_JOBS: a top-level array of job rows (NEWFLAG =
+-- 'C').
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS cancel_jobs (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  job_name      TEXT,          -- JOBNAME
+  sched_date    DATE,          -- SDLSTRTDT
+  sched_time    TEXT,          -- SDLSTRTTM, kept as SAP's HH:MM:SS text rather than parsed
+  user_name     TEXT,          -- RELUNAME
+  status        TEXT,          -- NEWFLAG, e.g. 'C' — displayed as "Cancelled"
+  job_log       TEXT,          -- JOBLOG
+  wp_process    TEXT,          -- WPPROCID
+  btcsysreax    TEXT,          -- BTCSYSREAX
+  reaxserver    TEXT           -- REAXSERVER
+);
+CREATE INDEX IF NOT EXISTS cancel_jobs_run_system_idx
+  ON cancel_jobs (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- STRUST certificate detail: the expired-certificate list behind a strust
+-- observation's headline count. Z_STRUST_SRV: a top-level array of tag groups
+-- ({ TAG, NO_OF_CERTIFICATES, CERT_DETAILS: [{ RESULT, CERTIFICATE,
+-- VALID_FROM, VALID_TO }] }) — only the "Already Expired" group's certificates
+-- are stored, matching the check's headline count.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS strust_certs (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  cert_result   TEXT,          -- RESULT, e.g. "Already Expired"
+  certificate   TEXT,          -- CERTIFICATE, the certificate's distinguished name
+  valid_from    DATE,          -- VALID_FROM
+  valid_to      DATE           -- VALID_TO
+);
+CREATE INDEX IF NOT EXISTS strust_certs_run_system_idx
+  ON strust_certs (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- SMQ1/SMQ2 queue error detail: the error-queue rows behind an smq1/smq2
+-- observation's headline count. Z_SMQ1_OUTB_SRV / Z_SMQ2_INB_SRV:
+-- { NO_OF_ERROR_QUEUES, ERROR_QTABLE: [{ QNAME, DEST, QSTATE, QRFCUSER,
+-- QRFCDATUM, QRFCUZEIT, ERRMESS, … }] }. Both checks share this one table,
+-- discriminated by check_key, because SMQ1 (outbound) and SMQ2 (inbound)
+-- return the identical row shape — unlike every other detail table here,
+-- which is one-to-one with its check.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS queue_errors (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  check_key     TEXT NOT NULL,  -- 'smq1' or 'smq2'
+  arfcipid      TEXT,          -- ARFCIPID
+  arfcpid       TEXT,          -- ARFCPID
+  queue_name    TEXT,          -- QNAME
+  destination   TEXT,          -- DEST
+  queue_state   TEXT,          -- QSTATE
+  rfc_user      TEXT,          -- QRFCUSER
+  rfc_function  TEXT,          -- QRFCFNAM
+  rfc_date      DATE,          -- QRFCDATUM
+  rfc_time      TEXT,          -- QRFCUZEIT, kept as SAP's HH:MM:SS text rather than parsed
+  error_message TEXT           -- ERRMESS
+);
+CREATE INDEX IF NOT EXISTS queue_errors_run_system_idx
+  ON queue_errors (run_id, system_id, check_key);
+ALTER TABLE queue_errors ADD COLUMN IF NOT EXISTS arfcipid TEXT;
+ALTER TABLE queue_errors ADD COLUMN IF NOT EXISTS arfcpid TEXT;
+ALTER TABLE queue_errors ADD COLUMN IF NOT EXISTS rfc_function TEXT;
+
+-- ---------------------------------------------------------------------------
+-- SM20 audit file detail: the audit-file rows behind an sm20 observation's
+-- OUTPUT sentence. Z_SM20_LOG_SRV: { OUTPUT, AUDIT_FILE: [{ INSTNAME,
+-- FILENAME, RECCNT, RECGOOD, MAXSIZE, ENDREASON, … }] }.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS audit_files (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  instance_name TEXT,          -- INSTNAME
+  file_name     TEXT,          -- FILENAME
+  record_count  INTEGER,       -- RECCNT
+  record_good   INTEGER,       -- RECGOOD
+  max_size      NUMERIC,       -- MAXSIZE
+  end_reason    TEXT,          -- ENDREASON
+  output_text   TEXT           -- top-level OUTPUT, repeated per row for the click-through table
+);
+CREATE INDEX IF NOT EXISTS audit_files_run_system_idx
+  ON audit_files (run_id, system_id);
+ALTER TABLE audit_files ADD COLUMN IF NOT EXISTS output_text TEXT;
 
 -- Flattened view: every observation with its date and system, ready for the API.
 CREATE OR REPLACE VIEW observation_feed AS

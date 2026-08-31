@@ -5,6 +5,11 @@ import { StatusChip, StatusDot } from './StatusChip.jsx';
 
 const NUMERIC_RE = /^\d+$/;
 
+// Checks whose dialog shows only their own row list (job/cert/queue/audit
+// detail) — the generic anomaly facts (source, flagged-since, why-flagged)
+// don't apply to a table of rows the way they do to a single reading.
+const ROW_LIST_CHECKS = new Set(['sm37', 'cancel', 'strust', 'smq1', 'smq2', 'sm20']);
+
 /**
  * One entry per check that carries row-level detail behind its count/status.
  * `columns` are the table headers; `cells(row)` returns the matching values in
@@ -80,18 +85,84 @@ const DETAIL_TABLE_SPECS = {
   sm50: {
     heading: (n) => `Work processes (${n})`,
     caption: (sid) => `SM50 work process list for ${sid}`,
-    columns: ['#', 'Type', 'Status', 'User', 'Program', 'CPU'],
+    columns: ['Server Name', 'STATE_DISP', 'PID', 'WP_TYPE_DISP', 'WAIT_FOR_PRIORITY_DISP'],
     cells: (w) => [
-      w.index ?? '—',
+      w.server ?? '—',
+      w.status ?? '—',
+      w.pid ?? '—',
       w.type ?? '—',
-      <>
-        {w.status ?? '—'}
-        {w.info && <span className="detail-sub"> · {w.info}</span>}
-      </>,
-      w.user || '—',
-      w.program || '—',
-      w.cpu ?? '—',
+      w.waitPriority ?? '—',
     ],
+  },
+  sm37: {
+    heading: (n) => `Background jobs (${n})`,
+    caption: (sid) => `SM37 long-running jobs for ${sid}`,
+    columns: ['Job name', 'Schedule start date', 'Schedule start time'],
+    cells: (j) => [j.jobName ?? '—', j.schedDate ?? '—', j.schedTime ?? '—'],
+  },
+  cancel: {
+    heading: (n) => `Cancelled jobs (${n})`,
+    caption: (sid) => `Cancelled background jobs for ${sid}`,
+    columns: [
+      'Job name',
+      'Scheduled start date',
+      'Scheduled time',
+      'User Name',
+      'Status',
+      'Job Log',
+      'WP Process',
+      'BTCSYSREAX',
+      'REAXSERVER',
+    ],
+    cells: (c) => [
+      c.jobName ?? '—',
+      c.schedDate ?? '—',
+      c.schedTime ?? '—',
+      c.userName ?? '—',
+      c.status === 'C' ? 'Cancelled' : (c.status ?? '—'),
+      c.jobLog ?? '—',
+      c.wpProcess ?? '—',
+      c.btcsysreax ?? '—',
+      c.reaxserver ?? '—',
+    ],
+  },
+  strust: {
+    heading: (n) => `Expired certificates (${n})`,
+    caption: (sid) => `Expired SSL certificates for ${sid}`,
+    columns: ['Certificate Name', 'Valid From', 'Valid To', 'Status'],
+    cells: (c) => [c.certificate ?? '—', c.validFrom ?? '—', c.validTo ?? '—', c.result ?? '—'],
+  },
+  smq1: {
+    heading: (n) => `Outbound error queues (${n})`,
+    caption: (sid) => `SMQ1 outbound error queues for ${sid}`,
+    columns: ['ARFCIPID', 'ARFCPID', 'Queue Name', 'QRFCFNAM', 'Date', 'Error Message'],
+    cells: (q) => [
+      q.arfcipid ?? '—',
+      q.arfcpid ?? '—',
+      q.queueName ?? '—',
+      q.rfcFunction ?? '—',
+      q.rfcDate ?? '—',
+      q.errorMessage ?? '—',
+    ],
+  },
+  smq2: {
+    heading: (n) => `Inbound error queues (${n})`,
+    caption: (sid) => `SMQ2 inbound error queues for ${sid}`,
+    columns: ['ARFCIPID', 'ARFCPID', 'Queue Name', 'QRFCFNAM', 'Date', 'Error Message'],
+    cells: (q) => [
+      q.arfcipid ?? '—',
+      q.arfcpid ?? '—',
+      q.queueName ?? '—',
+      q.rfcFunction ?? '—',
+      q.rfcDate ?? '—',
+      q.errorMessage ?? '—',
+    ],
+  },
+  sm20: {
+    heading: (n) => `Audit files (${n})`,
+    caption: (sid) => `SM20 audit files for ${sid}`,
+    columns: ['Instance Name', 'File Name', 'Output'],
+    cells: (a) => [a.instanceName ?? '—', a.fileName ?? '—', a.outputText ?? '—'],
   },
 };
 
@@ -149,6 +220,7 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
   const isAnomaly = Boolean(detail.isAnomaly);
   const severity = tile.severity === 'critical' ? 'critical' : 'warning';
   const normalTextIsCount = detail.normalText != null && NUMERIC_RE.test(String(detail.normalText));
+  const isJobsCheck = ROW_LIST_CHECKS.has(tile.key);
 
   // Clicking the backdrop lands on the dialog element itself, never on its
   // contents, which is what separates "outside" from "inside" here. It routes
@@ -192,62 +264,54 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
           <dt>Run</dt>
           <dd>{runLabel}</dd>
         </div>
-        <div>
-          <dt>Source</dt>
-          <dd>
-            {tile.hasLiveApi ? 'Live SAP API' : 'Imported workbook'}
-            {!tile.hasLiveApi && (
-              <span className="detail-sub"> · no live API configured for {sid}</span>
-            )}
-          </dd>
-        </div>
-        {isAnomaly ? (
-          <>
+        {!isJobsCheck &&
+          (isAnomaly ? (
+            <>
+              <div>
+                <dt>Flagged since</dt>
+                <dd>
+                  {detail.firstSeenShort ?? '—'}
+                  {detail.consecutiveRuns > 1 && (
+                    <span className="detail-sub"> · {detail.consecutiveRuns} runs in a row</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>In the last {detail.runsInWindow ?? 0} runs</dt>
+                <dd>
+                  {detail.occurrencesInWindow ?? 0}
+                  <span className="detail-sub"> flagged</span>
+                </dd>
+              </div>
+              <div className="detail-fact-wide">
+                <dt>Why it is flagged</dt>
+                <dd>
+                  {normalTextIsCount ? (
+                    <>
+                      The count is above <code className="detail-code">{detail.normalText}</code>,
+                      the value this check is healthy at.
+                    </>
+                  ) : detail.normalText ? (
+                    <>
+                      The reading no longer contains{' '}
+                      <code className="detail-code">{detail.normalText}</code>, the phrase this
+                      check is healthy on.
+                    </>
+                  ) : (
+                    'The reading changed from the value this check is healthy on.'
+                  )}
+                </dd>
+              </div>
+            </>
+          ) : (
             <div>
-              <dt>Flagged since</dt>
+              <dt>Last {detail.runsInWindow ?? 0} runs</dt>
               <dd>
-                {detail.firstSeenShort ?? '—'}
-                {detail.consecutiveRuns > 1 && (
-                  <span className="detail-sub"> · {detail.consecutiveRuns} runs in a row</span>
-                )}
+                All normal
+                <span className="detail-sub"> · nothing flagged</span>
               </dd>
             </div>
-            <div>
-              <dt>In the last {detail.runsInWindow ?? 0} runs</dt>
-              <dd>
-                {detail.occurrencesInWindow ?? 0}
-                <span className="detail-sub"> flagged</span>
-              </dd>
-            </div>
-            <div className="detail-fact-wide">
-              <dt>Why it is flagged</dt>
-              <dd>
-                {normalTextIsCount ? (
-                  <>
-                    The count is above <code className="detail-code">{detail.normalText}</code>,
-                    the value this check is healthy at.
-                  </>
-                ) : detail.normalText ? (
-                  <>
-                    The reading no longer contains{' '}
-                    <code className="detail-code">{detail.normalText}</code>, the phrase this
-                    check is healthy on.
-                  </>
-                ) : (
-                  'The reading changed from the value this check is healthy on.'
-                )}
-              </dd>
-            </div>
-          </>
-        ) : (
-          <div>
-            <dt>Last {detail.runsInWindow ?? 0} runs</dt>
-            <dd>
-              All normal
-              <span className="detail-sub"> · nothing flagged</span>
-            </dd>
-          </div>
-        )}
+          ))}
       </dl>
 
       {hasDetailTable && (

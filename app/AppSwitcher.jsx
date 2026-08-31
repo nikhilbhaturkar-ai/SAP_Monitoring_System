@@ -4,13 +4,16 @@ import { useState } from 'react';
 import MonitoringDashboard from '../components/MonitoringDashboard.jsx';
 import { Dashboard as BatchJobMonitor } from '../components/batch/Dashboard';
 
-const APPS = [
+const ALL_APPS = [
   { key: 'monitoring', label: 'Landscape Health' },
   { key: 'batch', label: 'Batch Job Monitor' },
 ];
 
-export default function AppSwitcher() {
+export default function AppSwitcher({ showBatchJobMonitorTab = false }) {
   const [app, setApp] = useState('monitoring');
+  const APPS = showBatchJobMonitorTab
+    ? ALL_APPS
+    : ALL_APPS.filter((a) => a.key !== 'batch');
 
   return (
     <>
@@ -26,7 +29,7 @@ export default function AppSwitcher() {
           </button>
         ))}
       </nav>
-      {app === 'monitoring' ? <MonitoringDashboard /> : <BatchJobMonitor />}
+      {app === 'batch' && showBatchJobMonitorTab ? <BatchJobMonitor /> : <MonitoringDashboard />}
     </>
   );
 }
