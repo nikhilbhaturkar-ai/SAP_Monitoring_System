@@ -250,23 +250,26 @@ CREATE INDEX IF NOT EXISTS cancel_jobs_run_system_idx
   ON cancel_jobs (run_id, system_id);
 
 -- ---------------------------------------------------------------------------
--- STRUST certificate detail: the expired-certificate list behind a strust
--- observation's headline count. Z_STRUST_SRV: a top-level array of tag groups
--- ({ TAG, NO_OF_CERTIFICATES, CERT_DETAILS: [{ RESULT, CERTIFICATE,
--- VALID_FROM, VALID_TO }] }) — only the "Already Expired" group's certificates
--- are stored, matching the check's headline count.
+-- STRUST certificate detail: the certificate list behind one of the three
+-- STRUST observations' headline count. Z_STRUST_SRV: a top-level array of tag
+-- groups ({ TAG, NO_OF_CERTIFICATES, CERT_DETAILS: [{ RESULT, CERTIFICATE,
+-- VALID_FROM, VALID_TO }] }) — one API call, three checks (strust /
+-- strustToday / strust15d), each storing its own group's certificates,
+-- discriminated by check_key. Same reasoning as queue_errors.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS strust_certs (
   id            BIGSERIAL PRIMARY KEY,
   run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
   system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  check_key     TEXT NOT NULL DEFAULT 'strust', -- 'strust' | 'strustToday' | 'strust15d'
   cert_result   TEXT,          -- RESULT, e.g. "Already Expired"
   certificate   TEXT,          -- CERTIFICATE, the certificate's distinguished name
   valid_from    DATE,          -- VALID_FROM
   valid_to      DATE           -- VALID_TO
 );
+ALTER TABLE strust_certs ADD COLUMN IF NOT EXISTS check_key TEXT NOT NULL DEFAULT 'strust';
 CREATE INDEX IF NOT EXISTS strust_certs_run_system_idx
-  ON strust_certs (run_id, system_id);
+  ON strust_certs (run_id, system_id, check_key);
 
 -- ---------------------------------------------------------------------------
 -- SMQ1/SMQ2 queue error detail: the error-queue rows behind an smq1/smq2
@@ -319,6 +322,46 @@ CREATE TABLE IF NOT EXISTS audit_files (
 CREATE INDEX IF NOT EXISTS audit_files_run_system_idx
   ON audit_files (run_id, system_id);
 ALTER TABLE audit_files ADD COLUMN IF NOT EXISTS output_text TEXT;
+
+-- ---------------------------------------------------------------------------
+-- SM21 syslog entry detail: the syslog rows behind an sm21 observation's
+-- headline count. Z_SM21_LOG_SRV: { NO_OF_SYSLOG_MSG, SYSLOG_ENTRIES: [{
+-- ZDATE, ZTIME, INSTANCE, ICON, TEXT, SLGDATA, … }] }.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS syslog_entries (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  log_date      DATE,          -- ZDATE
+  log_time      TEXT,          -- ZTIME, kept as SAP's HH:MM:SS text rather than parsed
+  instance_name TEXT,          -- INSTANCE
+  priority_icon TEXT,          -- ICON, e.g. "@5C\Qvery high priority@"
+  message_text  TEXT,          -- TEXT
+  slg_data      TEXT           -- SLGDATA
+);
+CREATE INDEX IF NOT EXISTS syslog_entries_run_system_idx
+  ON syslog_entries (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- SM58 pending tRFC detail: the tRFC rows behind an sm58 observation's
+-- headline count. Z_SM58_TRFC_SRV: { NO_OF_TRFCS, ARFCISTATE: [{ ARFCIPID,
+-- ARFCDEST, ARFCFNAM, ARFCTCODE, ARFCRHOST, ARFCMSG, ARFCRESERV, HASH, … }] }.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sm58_trfcs (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  arfcipid      TEXT,          -- ARFCIPID
+  arfcdest      TEXT,          -- ARFCDEST
+  arfcfnam      TEXT,          -- ARFCFNAM
+  arfctcode     TEXT,          -- ARFCTCODE
+  arfcrhost     TEXT,          -- ARFCRHOST
+  arfcmsg       TEXT,          -- ARFCMSG
+  arfcreserv    TEXT,          -- ARFCRESERV
+  trfc_hash     TEXT           -- HASH
+);
+CREATE INDEX IF NOT EXISTS sm58_trfcs_run_system_idx
+  ON sm58_trfcs (run_id, system_id);
 
 -- Flattened view: every observation with its date and system, ready for the API.
 CREATE OR REPLACE VIEW observation_feed AS

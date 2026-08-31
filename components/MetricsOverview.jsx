@@ -6,6 +6,33 @@ import { MetricDetailDialog } from './MetricDetailDialog.jsx';
 import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 
 /**
+ * Static placeholder tiles for BI/Fiori/Web Dispatcher reachability — no
+ * collector wired up for these yet (see lib/server/sap/mappers.js urlStatus
+ * TODO), so the value is fixed rather than read from the dashboard payload.
+ * Same single-icon "check" presentation as OS Monitoring's Memory/Swap/CPU
+ * sub-checks (status-glyph circle + label), just scaled up to be the tile's
+ * own headline via MetricTile's statusIcon path.
+ */
+const STATIC_REACHABILITY_TILES = [
+  { key: 'static-bi', label: 'BI Reachable' },
+  { key: 'static-fiori', label: 'Fiori Reachable' },
+  { key: 'static-webdisp', label: 'WEBDISPATCHER Reachable' },
+].map((t) => ({
+  ...t,
+  status: 'ok',
+  statusLabel: 'Normal',
+  value: 'Reachable',
+  unit: null,
+  note: null,
+  hint: 'Static placeholder — not yet wired to a live reachability check.',
+  scale: 'md',
+  meter: null,
+  pie: null,
+  detail: null,
+  statusIcon: { ok: true },
+}));
+
+/**
  * Every monitored parameter as its own tile, in one continuous five-across grid.
  *
  * The tiles are not split into headed sections: the groups are uneven (two
@@ -26,6 +53,7 @@ export function MetricsOverview({ card, endpoints, runLabel }) {
 
   const tiles = [
     ...endpoints.map(endpointTile),
+    ...STATIC_REACHABILITY_TILES,
     // Every capacity reading gets the ring: they are the same measure (consumed
     // against a limit), so they must be encoded the same way to stay comparable.
     ...[card.dataVol, card.logVol, card.freeApp, card.freeDb].map((m) =>

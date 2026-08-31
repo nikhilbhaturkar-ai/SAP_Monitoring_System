@@ -8,7 +8,18 @@ const NUMERIC_RE = /^\d+$/;
 // Checks whose dialog shows only their own row list (job/cert/queue/audit
 // detail) — the generic anomaly facts (source, flagged-since, why-flagged)
 // don't apply to a table of rows the way they do to a single reading.
-const ROW_LIST_CHECKS = new Set(['sm37', 'cancel', 'strust', 'smq1', 'smq2', 'sm20']);
+const ROW_LIST_CHECKS = new Set([
+  'sm37',
+  'cancel',
+  'strust',
+  'strustToday',
+  'strust15d',
+  'smq1',
+  'smq2',
+  'sm20',
+  'sm21',
+  'sm58',
+]);
 
 /**
  * One entry per check that carries row-level detail behind its count/status.
@@ -132,6 +143,18 @@ const DETAIL_TABLE_SPECS = {
     columns: ['Certificate Name', 'Valid From', 'Valid To', 'Status'],
     cells: (c) => [c.certificate ?? '—', c.validFrom ?? '—', c.validTo ?? '—', c.result ?? '—'],
   },
+  strustToday: {
+    heading: (n) => `Certificates expiring today (${n})`,
+    caption: (sid) => `SSL certificates expiring today for ${sid}`,
+    columns: ['Certificate Name', 'Valid From', 'Valid To', 'Status'],
+    cells: (c) => [c.certificate ?? '—', c.validFrom ?? '—', c.validTo ?? '—', c.result ?? '—'],
+  },
+  strust15d: {
+    heading: (n) => `Certificates expiring in 15 days (${n})`,
+    caption: (sid) => `SSL certificates expiring within 15 days for ${sid}`,
+    columns: ['Certificate Name', 'Valid From', 'Valid To', 'Status'],
+    cells: (c) => [c.certificate ?? '—', c.validFrom ?? '—', c.validTo ?? '—', c.result ?? '—'],
+  },
   smq1: {
     heading: (n) => `Outbound error queues (${n})`,
     caption: (sid) => `SMQ1 outbound error queues for ${sid}`,
@@ -163,6 +186,42 @@ const DETAIL_TABLE_SPECS = {
     caption: (sid) => `SM20 audit files for ${sid}`,
     columns: ['Instance Name', 'File Name', 'Output'],
     cells: (a) => [a.instanceName ?? '—', a.fileName ?? '—', a.outputText ?? '—'],
+  },
+  sm21: {
+    heading: (n) => `System log entries (${n})`,
+    caption: (sid) => `SM21 system log entries for ${sid}`,
+    columns: ['Date/Time', 'Instance', 'Priority', 'Error', 'SLGDATA'],
+    cells: (l) => [
+      l.logDate || l.logTime ? `${l.logDate ?? '—'}: ${l.logTime ?? '—'}` : '—',
+      l.instanceName ?? '—',
+      l.priorityIcon ?? '—',
+      l.messageText ?? '—',
+      l.slgData ?? '—',
+    ],
+  },
+  sm58: {
+    heading: (n) => `Pending tRFCs (${n})`,
+    caption: (sid) => `SM58 pending tRFC list for ${sid}`,
+    columns: [
+      'ARFCIPID',
+      'ARFCDEST',
+      'ARFCFNAM',
+      'ARFCTCODE',
+      'ARFCRHOST',
+      'ARFCMSG',
+      'ARFCRESERV',
+      'HASH',
+    ],
+    cells: (t) => [
+      t.arfcipid ?? '—',
+      t.arfcdest ?? '—',
+      t.arfcfnam ?? '—',
+      t.arfctcode ?? '—',
+      t.arfcrhost ?? '—',
+      t.arfcmsg ?? '—',
+      t.arfcreserv ?? '—',
+      t.hash ?? '—',
+    ],
   },
 };
 

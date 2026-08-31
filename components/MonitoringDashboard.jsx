@@ -182,11 +182,7 @@ export default function MonitoringDashboard() {
               endpoints={dashboard.endpoints}
               runLabel={dashboard.latestRun.label}
             />
-            <TrendPanel
-              trends={dashboard.trends}
-              sid={card.sid}
-              windowDays={dashboard.windowDays}
-            />
+            <TrendPanel trends={dashboard.trends} sid={card.sid} />
           </>
         ) : (
           <HistoryTable rows={history} sid={card.sid} />

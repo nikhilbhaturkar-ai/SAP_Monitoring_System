@@ -36,7 +36,9 @@ INSERT INTO checks (key, label, normal_text, is_info, is_volume, sort_order) VAL
   ('sm21',    'SM21 — System Log',           'no high priority entry found',FALSE, FALSE, 140),
   ('sm58',    'SM58 — Transactional RFC',    NULL,                          TRUE,  FALSE, 150),
   ('cancel',  'Cancelled Jobs',              'no cancelled jobs',           FALSE, FALSE, 155),
-  ('strust',  'STRUST — SSL Certificates',   '0',                           FALSE, FALSE, 30),
+  ('strust',  'STRUST — SSL Certificates Expired',            '0',          FALSE, FALSE, 30),
+  ('strustToday', 'STRUST — SSL Certificates Expired Today',  '0',          FALSE, FALSE, 31),
+  ('strust15d',   'STRUST — SSL Certificates Expiring in 15 Days', '0',     FALSE, FALSE, 32),
   ('freeApp', 'Free Memory — App Server',    NULL,                          TRUE,  TRUE,  160),
   ('freeDb',  'Free Memory — Database',      NULL,                          TRUE,  TRUE,  170),
   ('urlStatus','Endpoint Availability',      'accessable',                  FALSE, FALSE, 180)
