@@ -14,7 +14,10 @@ export function MetricTile({ tile, onOpenDetail }) {
   const canOpen = Boolean(tile.detail) && typeof onOpenDetail === 'function';
 
   return (
-    <article className="mtile" style={{ '--tile-accent': meta.color }}>
+    <article
+      className={`mtile${tile.tileClassName ? ` ${tile.tileClassName}` : ''}`}
+      style={{ '--tile-accent': meta.color }}
+    >
       <header className="mtile-head">
         <h3 className="mtile-title">{tile.label}</h3>
         {tile.hint && (

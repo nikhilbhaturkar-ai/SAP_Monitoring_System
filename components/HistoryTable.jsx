@@ -14,10 +14,29 @@ export function HistoryTable({ rows, sid }) {
       {rows.map((row) => (
         <div className="history-row" key={row.date}>
           <span className="history-date">{row.dateLabel}</span>
-          <span className="check-value" style={{ maxWidth: '100%', textAlign: 'left' }}>
-            <StatusDot status={row.status} srLabel={row.status === 'ok' ? 'Normal' : 'Attention'} />
-            <span>{row.note}</span>
-          </span>
+          {row.anomalies.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {row.anomalies.map((a, i) => (
+                // No id to key on — position is stable within one render.
+                // eslint-disable-next-line react/no-array-index-key
+                <span
+                  className="check-value"
+                  style={{ maxWidth: '100%', textAlign: 'left' }}
+                  key={i}
+                >
+                  <StatusDot status="warning" srLabel="Attention" />
+                  <span>
+                    <strong>{a.label}</strong>: {a.value}
+                  </span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="check-value" style={{ maxWidth: '100%', textAlign: 'left' }}>
+              <StatusDot status="ok" srLabel="Normal" />
+              <span>{row.note}</span>
+            </span>
+          )}
         </div>
       ))}
     </section>

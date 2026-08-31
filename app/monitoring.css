@@ -1285,7 +1285,7 @@ button {
   grid-template-columns: 130px 1fr;
   gap: 12px;
   padding: 13px 20px;
-  align-items: center;
+  align-items: start;
 }
 
 .history-head {
