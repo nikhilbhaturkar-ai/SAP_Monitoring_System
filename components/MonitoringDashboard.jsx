@@ -159,12 +159,6 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               })}
             </nav>
           </div>
-
-          <div className="sidebar-footer">
-            <div className="refresh-note">
-              Refreshed: {new Date(dashboard.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
-          </div>
         </aside>
 
         {/* 3. CONTENTS SECTION */}
@@ -260,6 +254,10 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               Refresh failed: {error}
             </p>
           )}
+
+          <footer className="dashboard-footer">
+            © 2026 APx Technology, LLP.  powered by Apx Technolgoy
+          </footer>
         </main>
       </div>
     </div>

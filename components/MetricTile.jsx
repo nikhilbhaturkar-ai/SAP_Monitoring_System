@@ -8,23 +8,60 @@ import { MiniDonut } from './MiniDonut.jsx';
  * the footer are what actually carry the state, so the tile stays readable
  * without relying on hue.
  */
-export function MetricTile({ tile, onOpenDetail }) {
+export function MetricTile({ tile, onOpenDetail, isFavorite = false, onToggleFavorite = null }) {
   const meta = statusOf(tile.status);
   const percent = tile.meter ? Math.min(100, Math.max(0, tile.meter.percent ?? 0)) : null;
   const canOpen = Boolean(tile.detail) && typeof onOpenDetail === 'function';
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('text/plain', tile.key);
+    e.dataTransfer.effectAllowed = 'copyMove';
+  };
+
   return (
     <article
-      className={`mtile${tile.tileClassName ? ` ${tile.tileClassName}` : ''}`}
+      className={`mtile${tile.tileClassName ? ` ${tile.tileClassName}` : ''}${isFavorite ? ' is-favorited' : ''}`}
       style={{ '--tile-accent': meta.color }}
+      draggable
+      onDragStart={handleDragStart}
     >
       <header className="mtile-head">
         <h3 className="mtile-title">{tile.label}</h3>
-        {tile.hint && (
-          <span className="mtile-info" tabIndex={0} role="note" aria-label={tile.hint} title={tile.hint}>
-            i
-          </span>
-        )}
+        <div className="mtile-head-actions">
+          {tile.hint && (
+            <span className="mtile-info" tabIndex={0} role="note" aria-label={tile.hint} title={tile.hint}>
+              i
+            </span>
+          )}
+          {onToggleFavorite && (
+            <button
+              type="button"
+              className={`mtile-favorite-btn${isFavorite ? ' active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(tile.key);
+              }}
+              title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+              aria-label={isFavorite ? `Remove ${tile.label} from Favorites` : `Add ${tile.label} to Favorites`}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill={isFavorite ? '#f59e0b' : 'none'}
+                stroke={isFavorite ? '#f59e0b' : 'currentColor'}
+                strokeWidth="2"
+                width="16"
+                height="16"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="mtile-body">
