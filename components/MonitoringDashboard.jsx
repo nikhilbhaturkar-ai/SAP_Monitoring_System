@@ -256,7 +256,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
           )}
 
           <footer className="dashboard-footer">
-            © 2026 APx Technology, LLP.  powered by Apx Technolgoy
+            © 2026 APx Technology, LLP.
           </footer>
         </main>
       </div>

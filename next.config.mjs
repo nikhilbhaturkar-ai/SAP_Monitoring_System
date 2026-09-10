@@ -8,7 +8,8 @@ const nextConfig = {
   // repo's own CLAUDE.md on every run, which fights with the hand-maintained
   // architecture doc at the repo root.
   agentRules: false,
-  allowedDevOrigins: ['172.16.15.4','172.16.15.3','www.aambikafoods.com','apxtechnology.in'],
+  allowedDevOrigins: ['172.16.15.4', '172.16.15.3', 'www.aambikafoods.com', 'apxtechnology.in'],
+  devIndicators: false
 };
 
 

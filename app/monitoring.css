@@ -2049,6 +2049,34 @@ button {
   }
 }
 
+.login-powered-by {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.login-powered-by:hover {
+  opacity: 1;
+}
+
+.login-powered-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.login-powered-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+}
+
 .login-demo-section {
   margin-top: 24px;
   padding-top: 20px;

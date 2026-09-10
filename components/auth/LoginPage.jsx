@@ -52,7 +52,7 @@ export default function LoginPage() {
             <img src={LOGO_URL} alt="M Power Logo" className="login-logo" />
           </div>
           <div className="login-eyebrow">SAP Basis Operations</div>
-          <h1 className="login-title">Landscape Monitor</h1>
+          <h1 className="login-title">Command Center</h1>
           <p className="login-subtitle">
             Sign in with your SAP Basis credentials to access system telemetry and batch controls.
           </p>
@@ -165,6 +165,11 @@ export default function LoginPage() {
               'Sign In to Dashboard'
             )}
           </button>
+
+          <div className="login-powered-by">
+            <span className="login-powered-label">powered by</span>
+            <img src="/apx-logo.svg" alt="APx Technology" className="login-powered-logo" />
+          </div>
         </form>
 
         <div className="login-demo-section">
