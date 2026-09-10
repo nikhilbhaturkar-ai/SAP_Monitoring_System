@@ -87,9 +87,6 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
         </div>
 
         <div className="header-actions">
-          <span className="refresh-note">
-            Last refresh: {new Date(dashboard.generatedAt).toLocaleString('en-GB')}
-          </span>
           {user && (
             <div className="user-profile-badge">
               <span className="user-avatar">{user.avatar || 'U'}</span>
@@ -128,11 +125,14 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
         <aside className="sidebar">
           <div className="sidebar-section">
             <div className="sidebar-section-title">SAP Systems ({dashboard.systems.length})</div>
+
+            {/* Desktop Navigation */}
             <nav className="sidebar-nav" aria-label="System navigation">
               {dashboard.systems.map((system) => {
                 const isSelected = system.sid === sid;
                 const info = landscapeMap.get(system.sid);
-                const hasAlerts = info?.openAlerts > 0;
+                const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
+                const hasAlerts = alertCount > 0;
                 return (
                   <button
                     key={system.sid}
@@ -143,21 +143,52 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                   >
                     <span
                       className={`status-dot ${hasAlerts ? 'warning' : 'good'}`}
-                      title={hasAlerts ? `${info.openAlerts} open issues` : 'Healthy'}
+                      title={hasAlerts ? `${alertCount} open alerts` : 'Healthy'}
                     />
                     <div className="nav-item-content">
                       <div className="nav-item-sid">{system.sid}</div>
-                      <div className="nav-item-name">{system.name}</div>
                     </div>
                     {info && (
-                      <span className="nav-item-badge" title="Health Score">
-                        {info.score}
+                      <span
+                        className={`sidebar-alert-badge ${hasAlerts ? 'has-alerts' : 'healthy'}`}
+                        title={hasAlerts ? `${alertCount} open alerts` : 'Healthy (0 alerts)'}
+                      >
+                        {alertCount}
                       </span>
                     )}
                   </button>
                 );
               })}
             </nav>
+
+            {/* Mobile System Selector */}
+            <div className="mobile-system-selector">
+              <div className="mobile-select-wrapper">
+                <select
+                  id="mobile-sid-select"
+                  className="mobile-select-dropdown"
+                  value={sid}
+                  onChange={(e) => setSid(e.target.value)}
+                  aria-label="Select SAP System"
+                >
+                  {dashboard.systems.map((system) => {
+                    const info = landscapeMap.get(system.sid);
+                    const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
+                    const alertText = alertCount > 0 ? ` • ${alertCount} Alerts` : ' • Healthy';
+                    return (
+                      <option key={system.sid} value={system.sid}>
+                        {system.sid} ({alertCount} alerts){alertText}
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="mobile-select-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -177,7 +208,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
             <span className="scope-chip scope-chip-static">
               <span className="scope-chip-label">Latest run</span>
-              {dashboard.latestRun.label}
+              {dashboard.latestRun.label}, {new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}
             </span>
 
             <span className="filters-spacer" />
@@ -189,28 +220,8 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
             <span aria-hidden="true">/</span>
             <span>Monitoring</span>
             <span aria-hidden="true">/</span>
-            <span className="breadcrumb-current">
-              {card.sid} ({card.name})
-            </span>
+            <span className="breadcrumb-current">{card.sid} - {card.name}</span>
           </nav>
-
-          {/* System identity row */}
-          <div className="system-bar">
-            <div
-              className="score-ring"
-              style={{
-                background: `conic-gradient(${meta.color} ${card.score}%, var(--gridline) 0)`,
-              }}
-              role="img"
-              aria-label={`Health score ${card.score} out of 100`}
-            >
-              <div className="score-ring-inner">{card.score}</div>
-            </div>
-            <div>
-              <div className="system-sid">{card.sid}</div>
-              <div className="system-name">{card.name}</div>
-            </div>
-          </div>
 
           <div className="tabs" role="tablist" aria-label="Dashboard view">
             <button
@@ -239,7 +250,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 <MetricsOverview
                   card={card}
                   endpoints={dashboard.endpoints}
-                  runLabel={dashboard.latestRun.label}
+                  runLabel={`${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
                   priorityFilter={priorityFilter}
                 />
                 <TrendPanel trends={dashboard.trends} sid={card.sid} />
