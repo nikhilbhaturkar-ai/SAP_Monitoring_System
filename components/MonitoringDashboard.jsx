@@ -6,8 +6,10 @@ import { AlertsBell } from './AlertsBell.jsx';
 import { MetricsOverview } from './MetricsOverview.jsx';
 import { TrendPanel } from './TrendPanel.jsx';
 import { HistoryTable } from './HistoryTable.jsx';
+import { MetricDetailDialog } from './MetricDetailDialog.jsx';
 import { statusOf } from '../lib/status.js';
 import { useAuth } from './auth/AuthContext.jsx';
+import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 
 const LOGO_URL = '/mpower-logo.png';
 
@@ -15,7 +17,9 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
   const { user, logout } = useAuth();
   const [sid, setSid] = useState('MSD');
   const [view, setView] = useState('snapshot');
+  const [layoutMode, setLayoutMode] = useState('tiles'); // 'tiles' | 'list'
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [openTile, setOpenTile] = useState(null);
 
   const [dashboard, setDashboard] = useState(null);
   const [history, setHistory] = useState(null);
@@ -73,6 +77,14 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
   const meta = statusOf(headStatus);
   const landscapeMap = new Map((dashboard.landscape || []).map((l) => [l.sid, l]));
 
+  const allTiles = [
+    ...(dashboard.endpoints || []).map(endpointTile),
+    ...[card.dataVol, card.logVol, card.freeApp, card.freeDb].filter(Boolean).map((m) =>
+      volumeTile(m, { pie: true })
+    ),
+    ...(card.params || []).map(paramTile),
+  ];
+
   return (
     <div className="dashboard-container">
       {/* 1. TOP HEADER SECTION */}
@@ -89,7 +101,9 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
         <div className="header-actions">
           {user && (
             <div className="user-profile-badge">
-              <span className="user-avatar">{user.avatar || 'U'}</span>
+              <div className="user-avatar" title={`Logged in as ${user.name}`}>
+                {user.name.charAt(0).toUpperCase()}
+              </div>
               <div className="user-info">
                 <span className="user-name">{user.name}</span>
                 <span className="user-role">{user.role}</span>
@@ -212,7 +226,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
             </span>
 
             <span className="filters-spacer" />
-            <AlertsBell alerts={dashboard.alerts} sid={card.sid} />
+            <AlertsBell alerts={dashboard.alerts} sid={card.sid} allTiles={allTiles} onOpenDetail={setOpenTile} />
           </div>
 
           <nav className="breadcrumb" aria-label="Breadcrumb">
@@ -223,25 +237,62 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
             <span className="breadcrumb-current">{card.sid} - {card.name}</span>
           </nav>
 
-          <div className="tabs" role="tablist" aria-label="Dashboard view">
-            <button
-              type="button"
-              role="tab"
-              className="tab"
-              aria-selected={view === 'snapshot'}
-              onClick={() => setView('snapshot')}
-            >
-              Metrics overview
-            </button>
-            <button
-              type="button"
-              role="tab"
-              className="tab"
-              aria-selected={view === 'history'}
-              onClick={() => setView('history')}
-            >
-              History log
-            </button>
+          <div className="view-header-row">
+            <div className="tabs" role="tablist" aria-label="Dashboard view">
+              <button
+                type="button"
+                role="tab"
+                className="tab"
+                aria-selected={view === 'snapshot'}
+                onClick={() => setView('snapshot')}
+              >
+                Metrics overview
+              </button>
+              <button
+                type="button"
+                role="tab"
+                className="tab"
+                aria-selected={view === 'history'}
+                onClick={() => setView('history')}
+              >
+                History log
+              </button>
+            </div>
+
+            <div className="view-toggle-group" role="radiogroup" aria-label="Layout view mode">
+              <button
+                type="button"
+                className={`view-toggle-btn ${layoutMode === 'tiles' ? 'active' : ''}`}
+                onClick={() => {
+                  if (view !== 'snapshot') setView('snapshot');
+                  setLayoutMode('tiles');
+                }}
+                title="Tile View (Grid)"
+                aria-checked={layoutMode === 'tiles'}
+                role="radio"
+              >
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M4.25 3A1.25 1.25 0 003 4.25v3.5C3 8.44 3.56 9 4.25 9h3.5A1.25 1.25 0 009 7.75v-3.5C9 3.56 8.44 3 7.75 3h-3.5zM12.25 3A1.25 1.25 0 0011 4.25v3.5c0 .69.56 1.25 1.25 1.25h3.5A1.25 1.25 0 0017 7.75v-3.5C17 3.56 16.44 3 15.75 3h-3.5zM4.25 11A1.25 1.25 0 003 12.25v3.5C3 16.44 3.56 17 4.25 17h3.5A1.25 1.25 0 009 15.75v-3.5C9 11.56 8.44 11 7.75 11h-3.5zM12.25 11A1.25 1.25 0 0011 12.25v3.5c0 .69.56 1.25 1.25 1.25h3.5A1.25 1.25 0 0017 15.75v-3.5C17 11.56 16.44 11 15.75 11h-3.5z" />
+                </svg>
+                <span>Tile View</span>
+              </button>
+              <button
+                type="button"
+                className={`view-toggle-btn ${layoutMode === 'list' ? 'active' : ''}`}
+                onClick={() => {
+                  if (view !== 'snapshot') setView('snapshot');
+                  setLayoutMode('list');
+                }}
+                title="List View (Table)"
+                aria-checked={layoutMode === 'list'}
+                role="radio"
+              >
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M3 4.75A.75.75 0 013.75 4h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 4.75zm0 10.5a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75zm0-5.25a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+                </svg>
+                <span>List View</span>
+              </button>
+            </div>
           </div>
 
           <div className={loading && hasRendered.current ? 'is-stale' : undefined}>
@@ -252,6 +303,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                   endpoints={dashboard.endpoints}
                   runLabel={`${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
                   priorityFilter={priorityFilter}
+                  layoutMode={layoutMode}
                 />
                 <TrendPanel trends={dashboard.trends} sid={card.sid} />
               </>
@@ -264,6 +316,17 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
             <p className="filter-note" role="alert" style={{ marginTop: 16 }}>
               Refresh failed: {error}
             </p>
+          )}
+
+          {openTile && (
+            <MetricDetailDialog
+              key={openTile.key}
+              tile={openTile}
+              sid={card.sid}
+              systemName={card.name}
+              runLabel={`${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
+              onClose={() => setOpenTile(null)}
+            />
           )}
 
           <footer className="dashboard-footer">

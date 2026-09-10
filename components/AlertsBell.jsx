@@ -6,8 +6,9 @@ import { StatusDot } from './StatusChip.jsx';
 /**
  * Compact bell replacing the old "N issues today" chip. Active alerts move
  * into a click/hover popup so the scope bar stays a single line.
+ * Clicking any active alert opens its detailed modal payload.
  */
-export function AlertsBell({ alerts, sid }) {
+export function AlertsBell({ alerts, sid, allTiles = [], onOpenDetail = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const bellRef = useRef(null);
   const active = alerts?.active ?? [];
@@ -22,6 +23,29 @@ export function AlertsBell({ alerts, sid }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const tileMap = new Map((allTiles || []).map((t) => [t.key, t]));
+
+  const handleAlertClick = (alert, index) => {
+    setIsOpen(false);
+    if (typeof onOpenDetail === 'function') {
+      const existingTile = tileMap.get(alert.checkKey) || allTiles.find((t) => t.label === alert.label);
+      const tile = existingTile || {
+        key: alert.checkKey || `alert-${index}`,
+        label: alert.label,
+        value: alert.value,
+        status: alert.severity || 'warning',
+        statusLabel: 'Attention',
+        hint: `Flagged alert on ${alert.dateShort}: ${alert.value}`,
+        detail: {
+          isAnomaly: true,
+          normalText: alert.label,
+          readings: [{ date: alert.date, dateShort: alert.dateShort, value: alert.value, isAnomaly: true }],
+        },
+      };
+      onOpenDetail(tile);
+    }
+  };
 
   return (
     <div className="alerts-bell" ref={bellRef}>
@@ -50,11 +74,27 @@ export function AlertsBell({ alerts, sid }) {
         {hasActive ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {active.map((alert, i) => (
-              <div className="alert-row" key={`${alert.date}-${alert.label}-${i}`}>
+              <div
+                className="alert-row is-clickable"
+                key={`${alert.date}-${alert.label}-${i}`}
+                onClick={() => handleAlertClick(alert, i)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleAlertClick(alert, i);
+                  }
+                }}
+                title={`Click to view details for ${alert.label}`}
+              >
                 <StatusDot status={alert.severity} srLabel={alert.severity} />
                 <span className="alert-date">{alert.dateShort}</span>
                 <span className="alert-body">
                   <strong>{alert.label}</strong> — {alert.value}
+                </span>
+                <span className="alert-link-action">
+                  Details &rarr;
                 </span>
               </div>
             ))}
