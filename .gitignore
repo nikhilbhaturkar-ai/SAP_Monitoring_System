@@ -13,3 +13,5 @@ batch-monitor-backend/.env
 batch-monitor-backend/data/chroma/
 batch-monitor-backend/**/__pycache__/
 batch-monitor-backend/.pytest_cache/
+.claude/
+.agents/

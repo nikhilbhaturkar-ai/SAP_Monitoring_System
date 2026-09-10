@@ -32,43 +32,68 @@ const STATIC_REACHABILITY_TILES = [
   statusIcon: { ok: true },
 }));
 
-/**
- * Every monitored parameter as its own tile, in one continuous five-across grid.
- *
- * The tiles are not split into headed sections: the groups are uneven (two
- * volumes, two memory readings, three endpoints), so headings would break the
- * grid into part-filled rows. Order still follows the checklist — endpoints,
- * DBA Cockpit volumes, free memory, then the daily transaction checks — and each
- * tile names its own parameter.
- *
- * Tiles for flagged checks open a detail dialog. Which tiles those are is
- * decided by the data (the API attaches `detail` to anomalies), never by a list
- * of check keys here.
- */
-export function MetricsOverview({ card, endpoints, runLabel }) {
+export function MetricsOverview({ card, endpoints, runLabel, priorityFilter = 'all' }) {
   const [openTile, setOpenTile] = useState(null);
   // Stable identity: the dialog's effect depends on it, and a new function each
   // render would tear the modal down and reopen it on every parent render.
   const closeDialog = useCallback(() => setOpenTile(null), []);
 
-  const tiles = [
+  const allTiles = [
     ...endpoints.map(endpointTile),
-    ...STATIC_REACHABILITY_TILES,
-    // Every capacity reading gets the ring: they are the same measure (consumed
-    // against a limit), so they must be encoded the same way to stay comparable.
     ...[card.dataVol, card.logVol, card.freeApp, card.freeDb].map((m) =>
       volumeTile(m, { pie: true })
     ),
     ...card.params.map(paramTile),
+    ...STATIC_REACHABILITY_TILES,
   ];
+
+  const tiles = allTiles.filter((tile) => {
+    if (!priorityFilter || priorityFilter === 'all') return true;
+
+    const status = String(tile.status || '').toLowerCase();
+    const severity = String(tile.severity || '').toLowerCase();
+
+    if (priorityFilter === 'critical') {
+      return status === 'critical' || severity === 'critical';
+    }
+    if (priorityFilter === 'warning') {
+      return (
+        status === 'warning' ||
+        status === 'serious' ||
+        status === 'info' ||
+        severity === 'warning' ||
+        severity === 'serious'
+      );
+    }
+    if (priorityFilter === 'good') {
+      return (
+        status === 'ok' ||
+        status === 'healthy' ||
+        status === 'good' ||
+        (status !== 'critical' && status !== 'warning' && status !== 'serious')
+      );
+    }
+    return true;
+  });
 
   return (
     <section className="mgroup" aria-label={`Monitored parameters for ${card.sid}`}>
-      <div className="mtile-grid">
-        {tiles.map((tile) => (
-          <MetricTile key={tile.key} tile={tile} onOpenDetail={setOpenTile} />
-        ))}
-      </div>
+      {tiles.length === 0 ? (
+        <div className="card state-panel" style={{ padding: '36px', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-primary)' }}>
+            <strong>No metric tiles match the "{priorityFilter.toUpperCase()}" priority filter.</strong>
+          </p>
+          <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+            Select another priority filter or switch to <em>All Priorities</em> to view all metrics.
+          </p>
+        </div>
+      ) : (
+        <div className="mtile-grid">
+          {tiles.map((tile) => (
+            <MetricTile key={tile.key} tile={tile} onOpenDetail={setOpenTile} />
+          ))}
+        </div>
+      )}
 
       {openTile && (
         <MetricDetailDialog

@@ -1,19 +1,36 @@
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
 import { StatusDot } from './StatusChip.jsx';
 
 /**
  * Compact bell replacing the old "N issues today" chip. Active alerts move
- * into a hover popup so the scope bar stays a single line.
+ * into a click/hover popup so the scope bar stays a single line.
  */
 export function AlertsBell({ alerts, sid }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const bellRef = useRef(null);
   const active = alerts?.active ?? [];
   const hasActive = active.length > 0;
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (bellRef.current && !bellRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
-    <div className="alerts-bell">
+    <div className="alerts-bell" ref={bellRef}>
       <button
         type="button"
         className={`alerts-bell-trigger${hasActive ? ' has-active' : ''}`}
+        onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="true"
+        aria-expanded={isOpen}
         aria-label={hasActive ? `${active.length} active alerts` : 'No active alerts'}
       >
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -25,7 +42,7 @@ export function AlertsBell({ alerts, sid }) {
         {hasActive && <span className="alerts-bell-badge">{active.length}</span>}
       </button>
 
-      <div className="alerts-bell-popup" role="dialog" aria-label="Active alerts">
+      <div className={`alerts-bell-popup${isOpen ? ' is-open' : ''}`} role="dialog" aria-label="Active alerts">
         <div className="alerts-bell-popup-title">
           {hasActive ? `${active.length} active alert${active.length > 1 ? 's' : ''}` : 'No active alerts'}
         </div>

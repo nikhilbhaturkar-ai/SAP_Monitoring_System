@@ -2,7 +2,7 @@ import './monitoring.css';
 import '../components/batch/styles.css';
 
 export const metadata = {
-  title: 'SAP Basis — Landscape Health Dashboard',
+  title: 'SAP Basis — Command Center',
 };
 
 export default function RootLayout({ children }) {
