@@ -52,9 +52,10 @@ export default function LoginPage() {
             <img src={LOGO_URL} alt="M Power Logo" className="login-logo" />
           </div>
           <div className="login-eyebrow">SAP Basis Operations</div>
-          <h1 className="login-title">Command Center</h1>
+          <h1 className="login-title">ApxOps</h1>
+          <span>The Autonomous SAP Basis Monitoring Platform</span>
           <p className="login-subtitle">
-            Sign in with your SAP Basis credentials to access system telemetry and batch controls.
+            <br />Sign in with your SAP Basis credentials to access system telemetry and batch controls.
           </p>
         </div>
 
