@@ -89,8 +89,8 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
   const enabledKeys = user?.enabledTiles || null;
   const filterTiles = (tiles) => enabledKeys ? tiles.filter(t => enabledKeys.includes(t.key)) : tiles;
 
-  const visibleTiles = enabledKeys 
-    ? allTiles.filter(t => enabledKeys.includes(t.key)) 
+  const visibleTiles = enabledKeys
+    ? allTiles.filter(t => enabledKeys.includes(t.key))
     : allTiles;
 
   const visibleCard = {
@@ -128,7 +128,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 <span className="user-role">{user.role}</span>
               </div>
               {user.role === 'Lead Administrator' && (
-                <a href="/admin" className="admin-link" style={{ marginRight: '15px', color: '#0070f2', textDecoration: 'none', fontWeight: 'bold' }}>
+                <a href="/admin" className="user-name" style={{ marginRight: '15px', color: '#ffffff', textDecoration: 'none', fontWeight: 'bold' }}>
                   Admin Settings
                 </a>
               )}
@@ -328,6 +328,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                   runLabel={`${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
                   priorityFilter={priorityFilter}
                   layoutMode={layoutMode}
+                  enabledKeys={enabledKeys}
                 />
                 <TrendPanel trends={dashboard.trends} sid={card.sid} />
               </>
