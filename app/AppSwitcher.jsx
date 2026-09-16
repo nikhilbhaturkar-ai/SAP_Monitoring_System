@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import MonitoringDashboard from '../components/MonitoringDashboard.jsx';
 import { Dashboard as BatchJobMonitor } from '../components/batch/Dashboard';
-import { AuthProvider, useAuth } from '../components/auth/AuthContext.jsx';
+import { useAuth } from '../components/auth/AuthContext.jsx';
 import LoginPage from '../components/auth/LoginPage.jsx';
 
 const ALL_APPS = [
@@ -58,8 +58,6 @@ function ProtectedDashboardContent({ showBatchJobMonitorTab }) {
 
 export default function AppSwitcher({ showBatchJobMonitorTab = false }) {
   return (
-    <AuthProvider>
-      <ProtectedDashboardContent showBatchJobMonitorTab={showBatchJobMonitorTab} />
-    </AuthProvider>
+    <ProtectedDashboardContent showBatchJobMonitorTab={showBatchJobMonitorTab} />
   );
 }

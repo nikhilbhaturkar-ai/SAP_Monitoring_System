@@ -13,6 +13,29 @@ CREATE TABLE IF NOT EXISTS systems (
   sort_order  INTEGER NOT NULL DEFAULT 100
 );
 
+CREATE TABLE IF NOT EXISTS plans (
+  id          SERIAL PRIMARY KEY,
+  name        TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id          SERIAL PRIMARY KEY,
+  username    TEXT NOT NULL UNIQUE,
+  password    TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  role        TEXT NOT NULL,
+  email       TEXT,
+  avatar      TEXT,
+  plan_id     INTEGER REFERENCES plans(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS plan_tiles (
+  plan_id     INTEGER NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+  tile_key    TEXT NOT NULL,
+  is_enabled  BOOLEAN NOT NULL DEFAULT TRUE,
+  PRIMARY KEY (plan_id, tile_key)
+);
+
 -- The monitoring checklist. `normal_text` is the substring that marks a healthy
 -- value; NULL + is_info means the value is informational and never an anomaly.
 CREATE TABLE IF NOT EXISTS checks (

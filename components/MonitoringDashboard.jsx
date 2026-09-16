@@ -85,6 +85,23 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
     ...(card.params || []).map(paramTile),
   ];
 
+  // Filter tiles based on user's enabled tiles configuration
+  const enabledKeys = user?.enabledTiles || null;
+  const filterTiles = (tiles) => enabledKeys ? tiles.filter(t => enabledKeys.includes(t.key)) : tiles;
+
+  const visibleTiles = enabledKeys 
+    ? allTiles.filter(t => enabledKeys.includes(t.key)) 
+    : allTiles;
+
+  const visibleCard = {
+    ...card,
+    hardware: filterTiles(card.hardware || []),
+    application: filterTiles(card.application || []),
+    jobs: filterTiles(card.jobs || []),
+    health: filterTiles(card.health || []),
+    params: (card.params || []).filter(p => enabledKeys ? enabledKeys.includes(p.key) : true),
+  };
+
   return (
     <div className="dashboard-container">
       {/* 1. TOP HEADER SECTION */}
@@ -110,6 +127,11 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 <span className="user-name">{user.name}</span>
                 <span className="user-role">{user.role}</span>
               </div>
+              {user.role === 'Lead Administrator' && (
+                <a href="/admin" className="admin-link" style={{ marginRight: '15px', color: '#0070f2', textDecoration: 'none', fontWeight: 'bold' }}>
+                  Admin Settings
+                </a>
+              )}
               <button
                 type="button"
                 className="logout-btn"
@@ -228,7 +250,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
             </span>
 
             <span className="filters-spacer" />
-            <AlertsBell alerts={dashboard.alerts} sid={card.sid} allTiles={allTiles} onOpenDetail={setOpenTile} />
+            <AlertsBell alerts={dashboard.alerts} sid={card.sid} allTiles={visibleTiles} onOpenDetail={setOpenTile} />
           </div>
 
           <nav className="breadcrumb" aria-label="Breadcrumb">
@@ -301,7 +323,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
             {view === 'snapshot' ? (
               <>
                 <MetricsOverview
-                  card={card}
+                  card={visibleCard}
                   endpoints={dashboard.endpoints}
                   runLabel={`${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
                   priorityFilter={priorityFilter}

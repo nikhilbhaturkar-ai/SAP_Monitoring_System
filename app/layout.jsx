@@ -1,5 +1,6 @@
 import './monitoring.css';
 import '../components/batch/styles.css';
+import { AuthProvider } from '../components/auth/AuthContext.jsx';
 
 export const metadata = {
   title: 'SAP Basis — Command Center',
@@ -16,7 +17,11 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }
