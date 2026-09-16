@@ -1,0 +1,151 @@
+.admin-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.admin-header h1 {
+  font-size: 24px;
+  color: #333;
+  margin: 0;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  color: #666;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn:hover {
+  color: #333;
+}
+
+.tab-btn.active {
+  color: #0066cc;
+  border-bottom-color: #0066cc;
+  font-weight: 500;
+}
+
+.admin-section {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.admin-section h2 {
+  font-size: 20px;
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.plan-selector {
+  margin-bottom: 24px;
+}
+
+.plan-selector select {
+  padding: 8px 12px;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  min-width: 200px;
+}
+
+.tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.tile-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tile-checkbox:hover {
+  background-color: #f5f5f5;
+}
+
+.tile-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.user-assignment-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.user-assignment-row:last-child {
+  border-bottom: none;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-info strong {
+  display: block;
+  color: #333;
+}
+
+.user-info span {
+  font-size: 14px;
+  color: #666;
+}
+
+.plan-select {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.save-btn {
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background-color: #0052a3;
+}
+
+.loading, .error {
+  padding: 24px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.error {
+  color: #d32f2f;
+}

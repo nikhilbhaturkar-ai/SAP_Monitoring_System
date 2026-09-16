@@ -48,3 +48,29 @@ ON CONFLICT (key) DO UPDATE
       is_info = EXCLUDED.is_info,
       is_volume = EXCLUDED.is_volume,
       sort_order = EXCLUDED.sort_order;
+
+INSERT INTO plans (id, name) VALUES
+  (1, 'Advanced'),
+  (2, 'Basic')
+ON CONFLICT (name) DO UPDATE
+  SET name = EXCLUDED.name;
+
+INSERT INTO users (username, password, name, role, email, avatar, plan_id) VALUES
+  ('admin', 'password123', 'SAP Basis Admin', 'Lead Administrator', 'basis.admin@company.sap', 'SA', 1),
+  ('operator', 'sap123', 'Basis Operator', 'Landscape Monitor', 'operator@company.sap', 'BO', 2)
+ON CONFLICT (username) DO UPDATE
+  SET password = EXCLUDED.password,
+      name = EXCLUDED.name,
+      role = EXCLUDED.role,
+      email = EXCLUDED.email,
+      avatar = EXCLUDED.avatar,
+      plan_id = EXCLUDED.plan_id;
+
+-- By default, allow everything for Advanced, and maybe a subset for Basic.
+INSERT INTO plan_tiles (plan_id, tile_key, is_enabled)
+SELECT 1, key, TRUE FROM checks
+ON CONFLICT (plan_id, tile_key) DO NOTHING;
+
+INSERT INTO plan_tiles (plan_id, tile_key, is_enabled)
+SELECT 2, key, TRUE FROM checks
+ON CONFLICT (plan_id, tile_key) DO NOTHING;

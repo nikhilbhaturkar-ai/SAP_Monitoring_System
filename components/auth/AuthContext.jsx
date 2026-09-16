@@ -9,25 +9,7 @@ const AuthContext = createContext({
   loading: true,
 });
 
-// Predefined dummy credentials for SAP Basis Monitoring Dashboard
-export const DUMMY_ACCOUNTS = [
-  {
-    userId: 'admin',
-    password: 'password123',
-    name: 'SAP Basis Admin',
-    role: 'Lead Administrator',
-    email: 'basis.admin@company.sap',
-    avatar: 'SA',
-  },
-  {
-    userId: 'operator',
-    password: 'sap123',
-    name: 'Basis Operator',
-    role: 'Landscape Monitor',
-    email: 'operator@company.sap',
-    avatar: 'BO',
-  },
-];
+// Predefined dummy credentials removed in favor of DB auth
 
 const STORAGE_KEY = 'sap_monitoring_user_session';
 
@@ -49,36 +31,42 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (userId, password) => {
-    // Simulate brief network delay for realism
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, password }),
+      });
 
-    const trimmedId = userId.trim().toLowerCase();
-    const account = DUMMY_ACCOUNTS.find(
-      (acc) => acc.userId.toLowerCase() === trimmedId && acc.password === password
-    );
+      const data = await response.json();
 
-    if (account) {
-      const userData = {
-        userId: account.userId,
-        name: account.name,
-        role: account.role,
-        email: account.email,
-        avatar: account.avatar,
-        loginTime: new Date().toISOString(),
-      };
-      setUser(userData);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-      } catch (e) {
-        console.error('Failed to persist user session', e);
+      if (data.success) {
+        const userData = {
+          ...data.user,
+          loginTime: new Date().toISOString(),
+        };
+        setUser(userData);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+        } catch (e) {
+          console.error('Failed to persist user session', e);
+        }
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          message: data.message || 'Invalid User ID or Password. Please check your credentials.',
+        };
       }
-      return { success: true };
+    } catch (err) {
+      console.error('Auth error', err);
+      return {
+        success: false,
+        message: 'Network error. Please try again later.',
+      };
     }
-
-    return {
-      success: false,
-      message: 'Invalid User ID or Password. Please check your credentials.',
-    };
   };
 
   const logout = () => {

@@ -64,7 +64,7 @@ function matchesFilter(tile, priorityFilter) {
   return true;
 }
 
-export function MetricsOverview({ card, endpoints, runLabel, priorityFilter = 'all', layoutMode = 'tiles' }) {
+export function MetricsOverview({ card, endpoints, runLabel, priorityFilter = 'all', layoutMode = 'tiles', enabledKeys = null }) {
   const [openTile, setOpenTile] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [favorites, setFavorites] = useState(() => {
@@ -96,14 +96,18 @@ export function MetricsOverview({ card, endpoints, runLabel, priorityFilter = 'a
     });
   }, []);
 
-  const allTiles = [
+  const builtTiles = [
     ...endpoints.map(endpointTile),
-    ...[card.dataVol, card.logVol, card.freeApp, card.freeDb].map((m) =>
+    ...[card.dataVol, card.logVol, card.freeApp, card.freeDb].filter(Boolean).map((m) =>
       volumeTile(m, { pie: true })
     ),
     ...card.params.map(paramTile),
     ...STATIC_REACHABILITY_TILES,
   ];
+
+  const allTiles = enabledKeys 
+    ? builtTiles.filter(t => enabledKeys.includes(t.key)) 
+    : builtTiles;
 
   const tileMap = new Map(allTiles.map((t) => [t.key, t]));
 

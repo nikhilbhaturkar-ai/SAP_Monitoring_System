@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth, DUMMY_ACCOUNTS } from './AuthContext.jsx';
+import { useAuth } from './AuthContext.jsx';
+
+const TEST_ACCOUNTS = [
+  { userId: 'admin', password: 'password123', name: 'SAP Basis Admin', avatar: 'SA' },
+  { userId: 'operator', password: 'sap123', name: 'Basis Operator', avatar: 'BO' }
+];
 
 const LOGO_URL = '/mpower-logo.png';
 
@@ -176,7 +181,7 @@ export default function LoginPage() {
         <div className="login-demo-section">
           <div className="login-demo-title">Test Accounts (Click to Autofill)</div>
           <div className="login-demo-grid">
-            {DUMMY_ACCOUNTS.map((acc) => (
+            {TEST_ACCOUNTS.map((acc) => (
               <button
                 key={acc.userId}
                 type="button"
