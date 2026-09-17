@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes_actions import router as actions_router
 from app.api.routes_investigation import router as investigation_router
+from app.api.routes_chat import router as chat_router
 from app.rag.ingest import ensure_ingested
 
 
@@ -25,6 +26,7 @@ app.add_middleware(
 
 app.include_router(investigation_router)
 app.include_router(actions_router)
+app.include_router(chat_router)
 
 
 @app.get("/health")
