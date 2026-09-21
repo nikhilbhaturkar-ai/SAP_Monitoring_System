@@ -19,14 +19,15 @@ CREATE TABLE IF NOT EXISTS plans (
 );
 
 CREATE TABLE IF NOT EXISTS users (
-  id          SERIAL PRIMARY KEY,
-  username    TEXT NOT NULL UNIQUE,
-  password    TEXT NOT NULL,
-  name        TEXT NOT NULL,
-  role        TEXT NOT NULL,
-  email       TEXT,
-  avatar      TEXT,
-  plan_id     INTEGER REFERENCES plans(id) ON DELETE SET NULL
+  id               SERIAL PRIMARY KEY,
+  username         TEXT NOT NULL UNIQUE,
+  password         TEXT NOT NULL,
+  name             TEXT NOT NULL,
+  role             TEXT NOT NULL,
+  email            TEXT,
+  avatar           TEXT,
+  plan_id          INTEGER REFERENCES plans(id) ON DELETE SET NULL,
+  assigned_systems TEXT NOT NULL DEFAULT 'ALL'
 );
 
 CREATE TABLE IF NOT EXISTS plan_tiles (
@@ -406,5 +407,30 @@ FROM observations o
 JOIN monitoring_runs r ON r.id = o.run_id
 JOIN systems s        ON s.id = o.system_id
 JOIN checks c         ON c.key = o.check_key;
+
+CREATE TABLE IF NOT EXISTS system_settings (
+  key         TEXT PRIMARY KEY,
+  value       TEXT NOT NULL,
+  updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO system_settings (key, value) VALUES
+  ('enable_email_notifications', 'false'),
+  ('send_critical_after_hours', 'false'),
+  ('refresh_interval_mins', '15'),
+  ('office_hours_start', '09:00'),
+  ('office_hours_end', '18:00'),
+  ('office_hours_timezone', 'Asia/Kolkata')
+ON CONFLICT (key) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS sent_notifications (
+  id          SERIAL PRIMARY KEY,
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  system_sid  TEXT NOT NULL,
+  check_key   TEXT NOT NULL,
+  last_value  TEXT NOT NULL,
+  sent_at     TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT  unique_user_alert UNIQUE(user_id, system_sid, check_key)
+);
 
 COMMIT;

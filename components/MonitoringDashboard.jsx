@@ -10,8 +10,9 @@ import { MetricDetailDialog } from './MetricDetailDialog.jsx';
 import { statusOf } from '../lib/status.js';
 import { useAuth } from './auth/AuthContext.jsx';
 import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
+import { DashboardChat } from './DashboardChat.jsx';
 
-const LOGO_URL = '/mpower-logo.png';
+const LOGO_URL = '/apx-logo.png';
 
 export default function MonitoringDashboard({ appSwitcher = null }) {
   const { user, logout } = useAuth();
@@ -25,6 +26,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
   const [history, setHistory] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [forceRunning, setForceRunning] = useState(false);
 
   // Refetch keeps the frame: hold the previous render at reduced opacity.
   const hasRendered = useRef(false);
@@ -44,9 +46,61 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
     }
   }, [sid]);
 
+  const handleForceRun = async () => {
+    if (forceRunning) return;
+    setForceRunning(true);
+    try {
+      const res = await fetch('/api/collector/force-run', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        await load();
+      } else {
+        alert(data.error || 'Failed to execute Force Run.');
+      }
+    } catch (err) {
+      alert(err.message || 'Error executing Force Run.');
+    } finally {
+      setForceRunning(false);
+    }
+  };
+
+  // Auto-refresh interval from admin settings (in minutes)
+  const [refreshIntervalMins, setRefreshIntervalMins] = useState(15);
+
+  useEffect(() => {
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.settings?.refreshInterval) {
+          setRefreshIntervalMins(data.settings.refreshInterval);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    const intervalMs = (refreshIntervalMins || 15) * 60 * 1000;
+    const timer = setInterval(() => {
+      load();
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [load, refreshIntervalMins]);
+
+  // Filter systems based on user's assigned systems
+  const userAssignedSystems = user?.assignedSystems || ['ALL'];
+  const isAllSystems = !userAssignedSystems || userAssignedSystems.includes('ALL') || userAssignedSystems.includes('All');
+
+  const visibleSystems = isAllSystems
+    ? (dashboard?.systems || [])
+    : (dashboard?.systems || []).filter(sys => userAssignedSystems.includes(sys.sid));
+
+  useEffect(() => {
+    if (visibleSystems.length > 0 && !visibleSystems.some(sys => sys.sid === sid)) {
+      setSid(visibleSystems[0].sid);
+    }
+  }, [visibleSystems, sid]);
 
   if (error && !dashboard) {
     return (
@@ -107,7 +161,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
       {/* 1. TOP HEADER SECTION */}
       <header className="top-header">
         <div className="header-brand">
-          <img className="header-logo" src={LOGO_URL} alt="M Power" />
+          <img className="header-logo" src={LOGO_URL} alt="APx Technology" />
         </div>
 
         <div className="header-center">
@@ -119,39 +173,44 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
         <div className="header-actions">
           {user && (
-            <div className="user-profile-badge">
-              <div className="user-avatar" title={`Logged in as ${user.name}`}>
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="user-info">
-                <span className="user-name">{user.name}</span>
-                <span className="user-role">{user.role}</span>
+            <div className="user-profile-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+              <div className="user-profile-badge">
+                <div className="user-avatar" title={`Logged in as ${user.name}`}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="user-info">
+                  <span className="user-name">{user.name}</span>
+                  <span className="user-role">{user.role}</span>
+                </div>
+                <button
+                  type="button"
+                  className="logout-btn"
+                  onClick={logout}
+                  title="Sign out of SAP Basis Monitoring"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
+                    <path
+                      fillRule="evenodd"
+                      d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
+                      clipRule="evenodd"
+                    />
+                    <path
+                      fillRule="evenodd"
+                      d="M6 10a.75.75 0 01.75-.75h9.546l-2.028-1.97a.75.75 0 011.06-1.06l3.3 3.208a.75.75 0 010 1.066l-3.3 3.208a.75.75 0 01-1.06-1.06l2.028-1.972H6.75A.75.75 0 016 10z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span>Sign Out</span>
+                </button>
               </div>
               {user.role === 'Lead Administrator' && (
-                <a href="/admin" className="user-name" style={{ marginRight: '15px', color: '#ffffff', textDecoration: 'none', fontWeight: 'bold' }}>
+                <a href="/admin" className="admin-settings-link">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true" style={{ marginRight: '5px' }}>
+                    <path fillRule="evenodd" d="M7.84 1.804A1.5 1.5 0 019.14 1h1.72a1.5 1.5 0 011.3 1.804l-.275 1.235c.196.115.385.244.565.386l1.21-.36a1.5 1.5 0 011.758.742l.86 1.49a1.5 1.5 0 01-.318 1.875l-.974.846c.018.196.027.395.027.596s-.009.4-.027.596l.974.846a1.5 1.5 0 01.318 1.875l-.86 1.49a1.5 1.5 0 01-1.758.742l-1.21-.36a6.002 6.002 0 00-.565.386l.275 1.235a1.5 1.5 0 01-1.3 1.804H9.14a1.5 1.5 0 01-1.3-1.804l.275-1.235a6.002 6.002 0 00-.565-.386l-1.21.36a1.5 1.5 0 01-1.758-.742l-.86-1.49a1.5 1.5 0 01.318-1.875l.974-.846A6.082 6.082 0 014 10c0-.201.009-.4.027-.596l-.974-.846a1.5 1.5 0 01-.318-1.875l.86-1.49a1.5 1.5 0 011.758-.742l1.21.36c.18-.142.369-.271.565-.386L7.84 1.804zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  </svg>
                   Admin Settings
                 </a>
               )}
-              <button
-                type="button"
-                className="logout-btn"
-                onClick={logout}
-                title="Sign out of SAP Basis Monitoring"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
-                  <path
-                    fillRule="evenodd"
-                    d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
-                    clipRule="evenodd"
-                  />
-                  <path
-                    fillRule="evenodd"
-                    d="M6 10a.75.75 0 01.75-.75h9.546l-2.028-1.97a.75.75 0 011.06-1.06l3.3 3.208a.75.75 0 010 1.066l-3.3 3.208a.75.75 0 01-1.06-1.06l2.028-1.972H6.75A.75.75 0 016 10z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Sign Out</span>
-              </button>
             </div>
           )}
         </div>
@@ -162,11 +221,11 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
         {/* 2. SIDEBAR SECTION */}
         <aside className="sidebar">
           <div className="sidebar-section">
-            <div className="sidebar-section-title">SAP Systems ({dashboard.systems.length})</div>
+            <div className="sidebar-section-title">SAP Systems ({visibleSystems.length})</div>
 
             {/* Desktop Navigation */}
             <nav className="sidebar-nav" aria-label="System navigation">
-              {dashboard.systems.map((system) => {
+              {visibleSystems.map((system) => {
                 const isSelected = system.sid === sid;
                 const info = landscapeMap.get(system.sid);
                 const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
@@ -209,7 +268,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                   onChange={(e) => setSid(e.target.value)}
                   aria-label="Select SAP System"
                 >
-                  {dashboard.systems.map((system) => {
+                  {visibleSystems.map((system) => {
                     const info = landscapeMap.get(system.sid);
                     const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
                     const alertText = alertCount > 0 ? ` • ${alertCount} Alerts` : ' • Healthy';
@@ -248,6 +307,22 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               <span className="scope-chip-label">Latest run</span>
               {dashboard.latestRun.label}, {new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}
             </span>
+
+            <button
+              type="button"
+              className="force-run-btn"
+              onClick={handleForceRun}
+              disabled={forceRunning}
+              title="Forcefully run worker job at backend and refresh dashboard data"
+            >
+              {forceRunning ? (
+                <>
+                  <span className="force-spinner" /> Running...
+                </>
+              ) : (
+                '⚡ Force Run'
+              )}
+            </button>
 
             <span className="filters-spacer" />
             <AlertsBell alerts={dashboard.alerts} sid={card.sid} allTiles={visibleTiles} onOpenDetail={setOpenTile} />
@@ -359,6 +434,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
           </footer>
         </main>
       </div>
+      <DashboardChat dashboardData={dashboard} systemData={card} />
     </div>
   );
 }

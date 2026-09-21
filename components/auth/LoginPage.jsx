@@ -8,7 +8,7 @@ const TEST_ACCOUNTS = [
   { userId: 'operator', password: 'sap123', name: 'Basis Operator', avatar: 'BO' }
 ];
 
-const LOGO_URL = '/mpower-logo.png';
+const LOGO_URL = '/apx-logo.png';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -54,7 +54,7 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo-wrapper">
-            <img src={LOGO_URL} alt="M Power Logo" className="login-logo" />
+            <img src={LOGO_URL} alt="APx Logo" className="login-logo" />
           </div>
           <div className="login-eyebrow">SAP Basis Operations</div>
           <h1 className="login-title">ApxOps</h1>
@@ -174,7 +174,7 @@ export default function LoginPage() {
 
           <div className="login-powered-by">
             <span className="login-powered-label">powered by</span>
-            <img src="/apx-logo.svg" alt="APx Technology" className="login-powered-logo" />
+            <img src="/apx-logo.png" alt="APx Technology" className="login-powered-logo" />
           </div>
         </form>
 

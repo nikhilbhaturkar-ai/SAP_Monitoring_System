@@ -43,3 +43,13 @@ class CreateInvestigationRequest(BaseModel):
 
 class NotifyRequest(BaseModel):
     team: str = "BASIS"
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    context: dict

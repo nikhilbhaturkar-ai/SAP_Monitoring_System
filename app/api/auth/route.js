@@ -40,7 +40,10 @@ export async function POST(req) {
         avatar: user.avatar,
         planId: user.plan_id,
         planName: user.plan_name,
-        enabledTiles: enabledTiles
+        enabledTiles: enabledTiles,
+        assignedSystems: user.assigned_systems
+          ? (user.assigned_systems === 'ALL' ? ['ALL'] : user.assigned_systems.split(','))
+          : ['ALL']
       }
     });
 
