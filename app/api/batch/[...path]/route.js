@@ -41,20 +41,23 @@ async function proxy(request, { params }) {
   );
   targetUrl.search = new URL(request.url).search;
 
+  const hasBody = !['GET', 'HEAD'].includes(request.method);
+  const body = hasBody ? await request.arrayBuffer() : undefined;
+
   const init = {
     method: request.method,
     headers: filteredHeaders(request.headers),
-    // GET/HEAD must not carry a body.
-    body: ['GET', 'HEAD'].includes(request.method) ? undefined : request.body,
-    duplex: ['GET', 'HEAD'].includes(request.method) ? undefined : 'half',
+    body,
   };
 
   let upstream;
   try {
     upstream = await fetch(targetUrl, init);
   } catch (err) {
+    console.error('[Batch Proxy Error]:', err);
+    const causeMsg = err.cause ? ` (cause: ${err.cause.code || err.cause.message || err.cause})` : '';
     return new Response(
-      JSON.stringify({ error: `batch monitor backend unreachable: ${err.message}` }),
+      JSON.stringify({ error: `batch monitor backend unreachable at ${targetUrl.href}: ${err.message}${causeMsg}` }),
       { status: 502, headers: { 'content-type': 'application/json' } }
     );
   }

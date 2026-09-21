@@ -12,7 +12,7 @@ import { useAuth } from './auth/AuthContext.jsx';
 import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 import { DashboardChat } from './DashboardChat.jsx';
 
-const LOGO_URL = '/mpower-logo.png';
+const LOGO_URL = '/apx-logo.png';
 
 export default function MonitoringDashboard({ appSwitcher = null }) {
   const { user, logout } = useAuth();
@@ -26,6 +26,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
   const [history, setHistory] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [forceRunning, setForceRunning] = useState(false);
 
   // Refetch keeps the frame: hold the previous render at reduced opacity.
   const hasRendered = useRef(false);
@@ -45,9 +46,61 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
     }
   }, [sid]);
 
+  const handleForceRun = async () => {
+    if (forceRunning) return;
+    setForceRunning(true);
+    try {
+      const res = await fetch('/api/collector/force-run', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        await load();
+      } else {
+        alert(data.error || 'Failed to execute Force Run.');
+      }
+    } catch (err) {
+      alert(err.message || 'Error executing Force Run.');
+    } finally {
+      setForceRunning(false);
+    }
+  };
+
+  // Auto-refresh interval from admin settings (in minutes)
+  const [refreshIntervalMins, setRefreshIntervalMins] = useState(15);
+
+  useEffect(() => {
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.settings?.refreshInterval) {
+          setRefreshIntervalMins(data.settings.refreshInterval);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    const intervalMs = (refreshIntervalMins || 15) * 60 * 1000;
+    const timer = setInterval(() => {
+      load();
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [load, refreshIntervalMins]);
+
+  // Filter systems based on user's assigned systems
+  const userAssignedSystems = user?.assignedSystems || ['ALL'];
+  const isAllSystems = !userAssignedSystems || userAssignedSystems.includes('ALL') || userAssignedSystems.includes('All');
+
+  const visibleSystems = isAllSystems
+    ? (dashboard?.systems || [])
+    : (dashboard?.systems || []).filter(sys => userAssignedSystems.includes(sys.sid));
+
+  useEffect(() => {
+    if (visibleSystems.length > 0 && !visibleSystems.some(sys => sys.sid === sid)) {
+      setSid(visibleSystems[0].sid);
+    }
+  }, [visibleSystems, sid]);
 
   if (error && !dashboard) {
     return (
@@ -108,7 +161,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
       {/* 1. TOP HEADER SECTION */}
       <header className="top-header">
         <div className="header-brand">
-          <img className="header-logo" src={LOGO_URL} alt="M Power" />
+          <img className="header-logo" src={LOGO_URL} alt="APx Technology" />
         </div>
 
         <div className="header-center">
@@ -168,11 +221,11 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
         {/* 2. SIDEBAR SECTION */}
         <aside className="sidebar">
           <div className="sidebar-section">
-            <div className="sidebar-section-title">SAP Systems ({dashboard.systems.length})</div>
+            <div className="sidebar-section-title">SAP Systems ({visibleSystems.length})</div>
 
             {/* Desktop Navigation */}
             <nav className="sidebar-nav" aria-label="System navigation">
-              {dashboard.systems.map((system) => {
+              {visibleSystems.map((system) => {
                 const isSelected = system.sid === sid;
                 const info = landscapeMap.get(system.sid);
                 const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
@@ -215,7 +268,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                   onChange={(e) => setSid(e.target.value)}
                   aria-label="Select SAP System"
                 >
-                  {dashboard.systems.map((system) => {
+                  {visibleSystems.map((system) => {
                     const info = landscapeMap.get(system.sid);
                     const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
                     const alertText = alertCount > 0 ? ` • ${alertCount} Alerts` : ' • Healthy';
@@ -254,6 +307,22 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               <span className="scope-chip-label">Latest run</span>
               {dashboard.latestRun.label}, {new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}
             </span>
+
+            <button
+              type="button"
+              className="force-run-btn"
+              onClick={handleForceRun}
+              disabled={forceRunning}
+              title="Forcefully run worker job at backend and refresh dashboard data"
+            >
+              {forceRunning ? (
+                <>
+                  <span className="force-spinner" /> Running...
+                </>
+              ) : (
+                '⚡ Force Run'
+              )}
+            </button>
 
             <span className="filters-spacer" />
             <AlertsBell alerts={dashboard.alerts} sid={card.sid} allTiles={visibleTiles} onOpenDetail={setOpenTile} />
