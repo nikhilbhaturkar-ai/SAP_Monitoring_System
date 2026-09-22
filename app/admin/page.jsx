@@ -43,6 +43,7 @@ export default function AdminPage() {
   // Email Notification UI state
   const [enableEmailNotifications, setEnableEmailNotifications] = useState(false);
   const [sendCriticalAfterHours, setSendCriticalAfterHours] = useState(false);
+  const [ignoreDeduplication, setIgnoreDeduplication] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(15);
   const [officeHoursStart, setOfficeHoursStart] = useState('09:00');
   const [officeHoursEnd, setOfficeHoursEnd] = useState('18:00');
@@ -87,6 +88,7 @@ export default function AdminPage() {
       if (settingsData.success) {
         setEnableEmailNotifications(settingsData.settings.enableEmailNotifications);
         setSendCriticalAfterHours(settingsData.settings.sendCriticalAfterHours);
+        setIgnoreDeduplication(settingsData.settings.ignoreDeduplication);
         setRefreshInterval(settingsData.settings.refreshInterval);
         setOfficeHoursStart(settingsData.settings.officeHoursStart || '09:00');
         setOfficeHoursEnd(settingsData.settings.officeHoursEnd || '18:00');
@@ -109,6 +111,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           enableEmailNotifications,
           sendCriticalAfterHours,
+          ignoreDeduplication,
           refreshInterval,
           officeHoursStart,
           officeHoursEnd,
@@ -476,6 +479,17 @@ export default function AdminPage() {
                     onChange={(e) => setSendCriticalAfterHours(e.target.checked)}
                   />
                   <span>Send Notification for critical alerts after office hours</span>
+                </label>
+              </div>
+
+              <div className="setting-item">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={ignoreDeduplication}
+                    onChange={(e) => setIgnoreDeduplication(e.target.checked)}
+                  />
+                  <span>Ignore Deduplication Check</span>
                 </label>
               </div>
 
