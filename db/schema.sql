@@ -433,4 +433,6 @@ CREATE TABLE IF NOT EXISTS sent_notifications (
   CONSTRAINT  unique_user_alert UNIQUE(user_id, system_sid, check_key)
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS assigned_systems TEXT NOT NULL DEFAULT 'ALL';
+
 COMMIT;
