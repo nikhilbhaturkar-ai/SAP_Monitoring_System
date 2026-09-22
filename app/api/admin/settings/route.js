@@ -15,6 +15,7 @@ export async function GET() {
       settings: {
         enableEmailNotifications: settingsMap['enable_email_notifications'] === 'true',
         sendCriticalAfterHours: settingsMap['send_critical_after_hours'] === 'true',
+        ignoreDeduplication: settingsMap['ignore_deduplication'] === 'true',
         refreshInterval: settingsMap['refresh_interval_mins'] ? parseInt(settingsMap['refresh_interval_mins']) : 15,
         officeHoursStart: settingsMap['office_hours_start'] || '09:00',
         officeHoursEnd: settingsMap['office_hours_end'] || '18:00',
@@ -33,6 +34,7 @@ export async function POST(req) {
     const {
       enableEmailNotifications,
       sendCriticalAfterHours,
+      ignoreDeduplication,
       refreshInterval,
       officeHoursStart,
       officeHoursEnd,
@@ -57,6 +59,10 @@ export async function POST(req) {
 
       if (sendCriticalAfterHours !== undefined) {
         await upsert('send_critical_after_hours', sendCriticalAfterHours ? 'true' : 'false');
+      }
+
+      if (ignoreDeduplication !== undefined) {
+        await upsert('ignore_deduplication', ignoreDeduplication ? 'true' : 'false');
       }
 
       if (refreshInterval !== undefined) {
