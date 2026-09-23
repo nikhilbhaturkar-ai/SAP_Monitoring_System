@@ -166,7 +166,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
         <div className="header-center">
           {appSwitcher && <div className="header-app-switcher">{appSwitcher}</div>}
-          <h2 className="dashboard-title" style={{ 'marginTop': '10px' }}>ApxOps - The Autonomous SAP Basis Monitoring Platform</h2>
+          <h2 className="dashboard-title" style={{ 'marginTop': '10px' }}>ApxOps - The Autonomous SAP Monitoring Platform</h2>
           <span className="nav-item-content" style={{ 'marginTop': '20px', 'marginBottom': '20px' }}>The agile AIOps platform built to replace manual system checks, eliminate alert fatigue,
             and keep your core SAP infrastructure running at peak performance.</span>
         </div>
