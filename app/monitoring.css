@@ -2611,11 +2611,16 @@ button {
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  padding: 20px 22px;
-  margin-bottom: 28px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
   box-shadow: var(--shadow-card);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
+}
+
+.favorites-section.is-collapsed {
+  padding-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .favorites-section.is-drag-over {
@@ -2629,15 +2634,46 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
+}
+
+.favorites-section.is-collapsed .favorites-header {
+  margin-bottom: 0;
 }
 
 .favorites-title-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+.favorites-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.favorites-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner, 6px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.favorites-toggle-btn:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary);
+  border-color: var(--border-strong, #f59e0b);
 }
 
 .favorites-star-icon {
@@ -2645,7 +2681,7 @@ button {
 }
 
 .favorites-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
@@ -2655,7 +2691,7 @@ button {
 .favorites-badge {
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 1px 7px;
   border-radius: 999px;
   background: #f59e0b;
   color: #ffffff;
@@ -2672,10 +2708,10 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 28px 20px;
+  gap: 10px;
+  padding: 14px 16px;
   background: var(--surface-2);
-  border: 2px dashed var(--border-strong);
+  border: 1.5px dashed var(--border-strong);
   border-radius: var(--radius-inner);
   color: var(--text-muted);
   text-align: center;

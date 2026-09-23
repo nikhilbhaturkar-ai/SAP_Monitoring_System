@@ -67,6 +67,7 @@ function matchesFilter(tile, priorityFilter) {
 export function MetricsOverview({ card, endpoints, runLabel, priorityFilter = 'all', layoutMode = 'tiles', enabledKeys = null }) {
   const [openTile, setOpenTile] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isFavoritesCollapsed, setIsFavoritesCollapsed] = useState(false);
   const [favorites, setFavorites] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -153,7 +154,7 @@ export function MetricsOverview({ card, endpoints, runLabel, priorityFilter = 'a
         <>
           {/* ── FAVORITES SECTION ── */}
           <div
-            className={`favorites-section${isDragOver ? ' is-drag-over' : ''}`}
+            className={`favorites-section${isDragOver ? ' is-drag-over' : ''}${isFavoritesCollapsed ? ' is-collapsed' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -173,32 +174,58 @@ export function MetricsOverview({ card, endpoints, runLabel, priorityFilter = 'a
                 <h2 className="favorites-title">Favorites</h2>
                 <span className="favorites-badge">{favoriteTiles.length}</span>
               </div>
-              <span className="favorites-hint">
-                Drag & drop tiles here or click ★ on any tile to pin
-              </span>
+              <div className="favorites-header-actions">
+                <span className="favorites-hint">
+                  Drag & drop tiles here or click ★ on any tile to pin
+                </span>
+                <button
+                  type="button"
+                  className="favorites-toggle-btn"
+                  onClick={() => setIsFavoritesCollapsed((prev) => !prev)}
+                  title={isFavoritesCollapsed ? 'Expand Favorites' : 'Collapse Favorites'}
+                  aria-label={isFavoritesCollapsed ? 'Expand Favorites' : 'Collapse Favorites'}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ transform: isFavoritesCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span>{isFavoritesCollapsed ? 'Expand' : 'Collapse'}</span>
+                </button>
+              </div>
             </div>
 
-            {favoriteTiles.length === 0 ? (
-              <div className="favorites-empty-zone">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                </svg>
-                <span className="favorites-empty-text">
-                  No favorite tiles. <strong>Drag any tile here</strong> or click the <strong>★ icon</strong> on a tile to add it to Favorites.
-                </span>
-              </div>
-            ) : (
-              <div className="mtile-grid favorites-grid">
-                {favoriteTiles.map((tile) => (
-                  <MetricTile
-                    key={`fav-${tile.key}`}
-                    tile={tile}
-                    isFavorite={true}
-                    onToggleFavorite={toggleFavorite}
-                    onOpenDetail={setOpenTile}
-                  />
-                ))}
-              </div>
+            {!isFavoritesCollapsed && (
+              favoriteTiles.length === 0 ? (
+                <div className="favorites-empty-zone">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                  </svg>
+                  <span className="favorites-empty-text">
+                    No favorite tiles. <strong>Drag any tile here</strong> or click the <strong>★ icon</strong> on a tile to add it to Favorites.
+                  </span>
+                </div>
+              ) : (
+                <div className="mtile-grid favorites-grid">
+                  {favoriteTiles.map((tile) => (
+                    <MetricTile
+                      key={`fav-${tile.key}`}
+                      tile={tile}
+                      isFavorite={true}
+                      onToggleFavorite={toggleFavorite}
+                      onOpenDetail={setOpenTile}
+                    />
+                  ))}
+                </div>
+              )
             )}
           </div>
 
