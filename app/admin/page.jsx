@@ -206,7 +206,7 @@ export default function AdminPage() {
       if (sys === 'ALL') {
         return { ...prev, assignedSystems: ['ALL'] };
       }
-      
+
       // If currently ALL, clear ALL when checking specific system
       if (current.includes('ALL')) {
         current = [];
@@ -354,7 +354,7 @@ export default function AdminPage() {
                       onChange={(e) => handleTileToggle(check.key, e.target.checked)}
                     />
                     <div className="tile-info">
-                      <span className="tile-key">{check.key}</span>
+                      {/* <span className="tile-key">{check.key}</span> */}
                       <span className="tile-label">{check.label}</span>
                     </div>
                   </label>
@@ -429,8 +429,8 @@ export default function AdminPage() {
                         <button className="action-btn edit-btn" onClick={() => handleOpenEditModal(u)}>
                           Edit
                         </button>
-                        <button 
-                          className="action-btn delete-btn" 
+                        <button
+                          className="action-btn delete-btn"
                           onClick={() => setDeleteTarget(u)}
                           disabled={user && (user.username === u.username || user.userId === u.username)}
                           title={user && (user.username === u.username || user.userId === u.username) ? "Cannot delete your own account" : "Delete user"}

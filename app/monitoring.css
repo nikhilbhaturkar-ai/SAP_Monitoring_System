@@ -419,7 +419,9 @@ button {
 }
 
 @keyframes forceSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .scope-chip select:focus-visible {
@@ -1835,6 +1837,7 @@ button {
 .nav-item-content {
   flex: 1;
   min-width: 0;
+  font-size: 12.5px;
 }
 
 .nav-item-sid {

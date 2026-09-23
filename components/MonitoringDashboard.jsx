@@ -75,7 +75,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
           setRefreshIntervalMins(data.settings.refreshInterval);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -166,8 +166,8 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
         <div className="header-center">
           {appSwitcher && <div className="header-app-switcher">{appSwitcher}</div>}
-          <h1 className="dashboard-title" style={{ 'marginTop': '40px', 'marginBottom': '10px' }}>ApxOps - The Autonomous SAP Basis Monitoring Platform</h1>
-          <span className="nav-item-content" style={{ 'marginLeft': '110px', 'marginRight': '110px', 'marginTop': '20px', 'marginBottom': '20px' }}>The agile AIOps platform built to replace manual system checks, eliminate alert fatigue,
+          <h2 className="dashboard-title" style={{ 'marginTop': '10px' }}>ApxOps - The Autonomous SAP Basis Monitoring Platform</h2>
+          <span className="nav-item-content" style={{ 'marginTop': '20px', 'marginBottom': '20px' }}>The agile AIOps platform built to replace manual system checks, eliminate alert fatigue,
             and keep your core SAP infrastructure running at peak performance.</span>
         </div>
 
