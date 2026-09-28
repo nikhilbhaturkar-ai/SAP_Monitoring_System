@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = "127.0.0.1"
     BACKEND_PORT: int = 8000
 
+    # Controls whether dashboard/system data is included in LLM prompts.
+    # Set to "yes" only if you trust the LLM provider with your SAP operational data.
+    SEND_DASHBOARD_DATA_TO_LLM: str = "no"
+
 
 settings = Settings()
 
