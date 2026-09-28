@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # Controls whether dashboard/system data is included in LLM prompts.
     # Set to "yes" only if you trust the LLM provider with your SAP operational data.
-    SEND_DASHBOARD_DATA_TO_LLM: str = "no"
+    SEND_DASHBOARD_DATA_TO_LLM: str = "yes"
 
 
 settings = Settings()

@@ -8,7 +8,7 @@ const TEST_ACCOUNTS = [
   { userId: 'operator', password: 'sap123', name: 'Basis Operator', avatar: 'BO' }
 ];
 
-const LOGO_URL = '/apx-logo.png';
+const LOGO_URL = '/mpower-logo.png';
 
 export default function LoginPage() {
   const { login } = useAuth();

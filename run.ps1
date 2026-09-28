@@ -72,7 +72,8 @@ param(
     [switch]$SkipImport,
     [switch]$Stop,
     [switch]$Status,
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$BatchOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -261,6 +262,16 @@ if ($Stop) {
     exit 0
 }
 
+# --- -BatchOnly --------------------------------------------------------------
+if ($BatchOnly) {
+    Write-Host ''
+    Write-Step 'Starting batch monitor backend only (port 8000)'
+    Write-Host '    Press Ctrl+C to stop.' -ForegroundColor Yellow
+    Write-Host ''
+    & npm run dev:batch-backend
+    exit $LASTEXITCODE
+}
+
 # --- Preflight ---------------------------------------------------------------
 Write-Host ''
 Write-Host '  SAP Monitoring System' -ForegroundColor White
@@ -306,7 +317,7 @@ if ($busy.Count -gt 0) {
 }
 
 # --- Dependencies ------------------------------------------------------------
-if (-not (Test-Path -LiteralPath 'node_modules') -or -not (Test-Path -LiteralPath 'client\node_modules')) {
+if (-not (Test-Path -LiteralPath 'node_modules')) {
     Write-Step 'Installing dependencies (first run - this takes a minute)'
     Invoke-Npm -Arguments @('install') -What 'npm install'
     Write-Ok 'workspaces installed'
