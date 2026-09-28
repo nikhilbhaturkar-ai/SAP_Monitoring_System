@@ -55,6 +55,7 @@ function matchesFilter(tile, priorityFilter) {
       status === 'warning' ||
       status === 'serious' ||
       status === 'info' ||
+      status === 'elevated' ||
       severity === 'warning' ||
       severity === 'serious'
     );
@@ -62,9 +63,9 @@ function matchesFilter(tile, priorityFilter) {
   if (priorityFilter === 'good') {
     return (
       status === 'ok' ||
+      status === 'normal' ||
       status === 'healthy' ||
-      status === 'good' ||
-      (status !== 'critical' && status !== 'warning' && status !== 'serious')
+      status === 'good'
     );
   }
   return true;
