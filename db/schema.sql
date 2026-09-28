@@ -387,6 +387,145 @@ CREATE TABLE IF NOT EXISTS sm58_trfcs (
 CREATE INDEX IF NOT EXISTS sm58_trfcs_run_system_idx
   ON sm58_trfcs (run_id, system_id);
 
+-- ---------------------------------------------------------------------------
+-- Locked Users detail
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS locked_users (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  user_name     TEXT,
+  first_name    TEXT,
+  last_name     TEXT
+);
+CREATE INDEX IF NOT EXISTS locked_users_run_system_idx
+  ON locked_users (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Inactive Users detail
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS inactive_users (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  user_name     TEXT,
+  first_name    TEXT,
+  last_name     TEXT
+);
+CREATE INDEX IF NOT EXISTS inactive_users_run_system_idx
+  ON inactive_users (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- High Privilege Users detail
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS high_priv_users (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  user_name     TEXT,
+  profile       TEXT,
+  client        TEXT
+);
+CREATE INDEX IF NOT EXISTS high_priv_users_run_system_idx
+  ON high_priv_users (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Unassigned Roles detail
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS unassigned_roles (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  role_name     TEXT
+);
+CREATE INDEX IF NOT EXISTS unassigned_roles_run_system_idx
+  ON unassigned_roles (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Ghost (unused) Roles detail
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS ghost_roles (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  user_name     TEXT,
+  role_name     TEXT,
+  status        TEXT
+);
+CREATE INDEX IF NOT EXISTS ghost_roles_run_system_idx
+  ON ghost_roles (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Unused Profiles detail
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS unused_profiles (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  agr_name      TEXT,
+  profile       TEXT
+);
+CREATE INDEX IF NOT EXISTS unused_profiles_run_system_idx
+  ON unused_profiles (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Unused TCodes detail
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS unused_tcodes (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  tcode         TEXT,
+  agr_name      TEXT,
+  status        TEXT
+);
+CREATE INDEX IF NOT EXISTS unused_tcodes_run_system_idx
+  ON unused_tcodes (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Undeleted Users detail (HR status = retired/left but SAP user still exists)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS undeleted_users (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  user_name     TEXT,
+  hr_status     TEXT,
+  status        TEXT
+);
+CREATE INDEX IF NOT EXISTS undeleted_users_run_system_idx
+  ON undeleted_users (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Redundant Roles detail (composite roles with redundant single roles)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS redundant_roles (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  agr_name      TEXT,
+  parent_role   TEXT,
+  status        TEXT
+);
+CREATE INDEX IF NOT EXISTS redundant_roles_run_system_idx
+  ON redundant_roles (run_id, system_id);
+
+-- ---------------------------------------------------------------------------
+-- Empty Shell Users detail (active users with no roles, or only expired roles)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS empty_shell_users (
+  id            BIGSERIAL PRIMARY KEY,
+  run_id        INTEGER NOT NULL REFERENCES monitoring_runs(id) ON DELETE CASCADE,
+  system_id     INTEGER NOT NULL REFERENCES systems(id) ON DELETE CASCADE,
+  user_name     TEXT,
+  agr_name      TEXT,
+  user_valid    TEXT,
+  role_valid    TEXT,
+  status        TEXT
+);
+CREATE INDEX IF NOT EXISTS empty_shell_users_run_system_idx
+  ON empty_shell_users (run_id, system_id);
+
 -- Flattened view: every observation with its date and system, ready for the API.
 CREATE OR REPLACE VIEW observation_feed AS
 SELECT r.run_date,
