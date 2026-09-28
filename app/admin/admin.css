@@ -68,11 +68,95 @@
   min-width: 200px;
 }
 
+.tile-section {
+  margin-bottom: 36px;
+}
+
+.tile-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.tile-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.tile-section-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: #0066cc;
+  border-radius: 12px;
+  padding: 2px 8px;
+  line-height: 1.5;
+}
+
+.tile-section-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #666;
+}
+
+.tile-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #fff;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.tile-toggle:hover {
+  background: #f0f6ff;
+  border-color: #0066cc;
+}
+
+.tile-toggle.enabled {
+  border-color: #0066cc;
+  background: #f0f6ff;
+}
+
+.tile-toggle.disabled {
+  opacity: 0.6;
+  background: #fafafa;
+}
+
+.tile-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0066cc;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.tile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tile-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a2e;
+  line-height: 1.3;
+}
+
 .tiles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .tile-checkbox {
@@ -550,6 +634,107 @@
 
 .confirm-delete-btn:hover {
   background-color: #c92a2a;
+}
+
+/* ── SMTP Test Section ──────────────────────────────────── */
+.smtp-test-section {
+  margin-top: 24px;
+  padding: 18px 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.smtp-test-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.smtp-test-desc {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.smtp-config-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.smtp-config-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.smtp-config-row span {
+  min-width: 40px;
+  font-weight: 500;
+  color: #444;
+}
+
+.test-email-btn {
+  background: #0066cc;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.test-email-btn:hover:not(:disabled) {
+  background: #0052a3;
+}
+
+.test-email-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.smtp-test-result {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.smtp-test-result.smtp-ok {
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  color: #2e7d32;
+}
+
+.smtp-test-result.smtp-fail {
+  background: #ffebee;
+  border: 1px solid #ef9a9a;
+  color: #c62828;
+}
+
+.smtp-result-config {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.smtp-error-msg {
+  margin-top: 6px;
+  font-size: 12px;
+  font-family: monospace;
+  word-break: break-all;
 }
 
 /* Email Notification Tab Styles */
