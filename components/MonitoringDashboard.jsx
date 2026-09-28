@@ -13,7 +13,7 @@ import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 import { DashboardChat } from './DashboardChat.jsx';
 import { SystemMonitoring } from './SystemMonitoring.jsx';
 
-const LOGO_URL = '/apx-logo.png';
+const LOGO_URL = '/mpower-logo.png';
 
 export default function MonitoringDashboard({ appSwitcher = null }) {
   const { user, logout } = useAuth();
