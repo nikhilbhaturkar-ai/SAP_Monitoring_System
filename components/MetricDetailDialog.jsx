@@ -26,6 +26,8 @@ const ROW_LIST_CHECKS = new Set([
   'ghostRoles',
   'unusedProfiles',
   'unusedTcodes',
+  'undeletedUsers',
+  'redundantRoles',
   'emptyShell',
 ]);
 
@@ -248,6 +250,18 @@ const DETAIL_TABLE_SPECS = {
     caption: (sid) => `Unassigned SAP roles for ${sid}`,
     columns: ['AGR_NAME'],
     cells: (r) => [r.roleName ?? '—'],
+  },
+  undeletedUsers: {
+    heading: (n) => `Undeleted users (${n})`,
+    caption: (sid) => `Users whose HR record is Retired/Left but SAP ID still exists in ${sid}`,
+    columns: ['Username (BNAME)', 'First Name', 'Last Name', 'HR Status'],
+    cells: (u) => [u.userName ?? '—', u.firstName ?? '—', u.lastName ?? '—', u.hrStatus ?? '—'],
+  },
+  redundantRoles: {
+    heading: (n) => `Redundant single roles in composite roles (${n})`,
+    caption: (sid) => `Composite roles with redundant single roles for ${sid}`,
+    columns: ['Username (BNAME)', 'Composite Role', 'Single Role'],
+    cells: (r) => [r.userName ?? '—', r.compositeRole ?? '—', r.singleRole ?? '—'],
   },
   inactive: {
     heading: (n) => `Inactive users (${n})`,

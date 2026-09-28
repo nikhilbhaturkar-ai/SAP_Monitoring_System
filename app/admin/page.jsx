@@ -50,6 +50,8 @@ export default function AdminPage() {
   const [officeHoursTimezone, setOfficeHoursTimezone] = useState('Asia/Kolkata');
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState(null);
+  const [testEmailSending, setTestEmailSending] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState(null); // { success, smtpConfig, error, sentTo }
 
   useEffect(() => {
     if (!authLoading) {
@@ -129,6 +131,28 @@ export default function AdminPage() {
       setSettingsMsg({ type: 'error', text: err.message });
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    if (!user?.email) {
+      setTestEmailResult({ success: false, error: 'Your admin account has no email address set. Edit your user record first.' });
+      return;
+    }
+    setTestEmailSending(true);
+    setTestEmailResult(null);
+    try {
+      const res = await fetch('/api/admin/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: user.email }),
+      });
+      const data = await res.json();
+      setTestEmailResult(data);
+    } catch (err) {
+      setTestEmailResult({ success: false, error: err.message });
+    } finally {
+      setTestEmailSending(false);
     }
   };
 
@@ -327,42 +351,69 @@ export default function AdminPage() {
       </div>
 
       <div className="admin-content">
-        {activeTab === 'tiles' && (
-          <div className="tab-pane">
-            <div className="plan-selector">
-              <label>Select Plan:</label>
-              <select
-                value={selectedPlanId || ''}
-                onChange={(e) => setSelectedPlanId(parseInt(e.target.value))}
-              >
-                {plans.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
+        {activeTab === 'tiles' && (() => {
+          const SYSTEM_KEYS = new Set([
+            'locked', 'inactive', 'highPriv', 'unassignedRoles', 'ghostRoles',
+            'unusedProfiles', 'unusedTcodes', 'undeletedUsers', 'redundantRoles', 'emptyShell',
+          ]);
+          const basisChecks  = checks.filter(c => !SYSTEM_KEYS.has(c.key));
+          const systemChecks = checks.filter(c =>  SYSTEM_KEYS.has(c.key));
 
-            <div className="tiles-grid">
-              {checks.map(check => {
-                const pt = planTiles.find(pt => pt.plan_id === selectedPlanId && pt.tile_key === check.key);
-                const isEnabled = pt ? pt.is_enabled : false;
+          const renderTile = (check) => {
+            const pt = planTiles.find(pt => pt.plan_id === selectedPlanId && pt.tile_key === check.key);
+            const isEnabled = pt ? pt.is_enabled : false;
+            return (
+              <label key={check.key} className={`tile-toggle ${isEnabled ? 'enabled' : 'disabled'}`}>
+                <input
+                  type="checkbox"
+                  checked={isEnabled}
+                  onChange={(e) => handleTileToggle(check.key, e.target.checked)}
+                />
+                <div className="tile-info">
+                  <span className="tile-label">{check.label}</span>
+                </div>
+              </label>
+            );
+          };
 
-                return (
-                  <label key={check.key} className={`tile-toggle ${isEnabled ? 'enabled' : 'disabled'}`}>
-                    <input
-                      type="checkbox"
-                      checked={isEnabled}
-                      onChange={(e) => handleTileToggle(check.key, e.target.checked)}
-                    />
-                    <div className="tile-info">
-                      {/* <span className="tile-key">{check.key}</span> */}
-                      <span className="tile-label">{check.label}</span>
-                    </div>
-                  </label>
-                );
-              })}
+          return (
+            <div className="tab-pane">
+              <div className="plan-selector">
+                <label>Select Plan:</label>
+                <select
+                  value={selectedPlanId || ''}
+                  onChange={(e) => setSelectedPlanId(parseInt(e.target.value))}
+                >
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="tile-section">
+                <div className="tile-section-header">
+                  <h3 className="tile-section-title">Basis Monitoring</h3>
+                  <span className="tile-section-count">{basisChecks.length} tiles</span>
+                </div>
+                <p className="tile-section-desc">System health, performance, volumes and SAP technical checks.</p>
+                <div className="tiles-grid">
+                  {basisChecks.map(renderTile)}
+                </div>
+              </div>
+
+              <div className="tile-section">
+                <div className="tile-section-header">
+                  <h3 className="tile-section-title">System Monitoring</h3>
+                  <span className="tile-section-count">{systemChecks.length} tiles</span>
+                </div>
+                <p className="tile-section-desc">User access, role assignments and security compliance checks.</p>
+                <div className="tiles-grid">
+                  {systemChecks.map(renderTile)}
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {activeTab === 'users' && (
           <div className="tab-pane">
@@ -542,6 +593,58 @@ export default function AdminPage() {
                   <option value={45}>45 mins</option>
                   <option value={60}>60 mins</option>
                 </select>
+              </div>
+
+              <div className="smtp-test-section">
+                <h4 className="smtp-test-title">SMTP Configuration &amp; Test</h4>
+                <p className="smtp-test-desc">
+                  Verify your SMTP settings by sending a test email to your admin account
+                  {user?.email ? <strong> ({user.email})</strong> : ''}.
+                  SMTP credentials are set in the server <code>.env</code> file.
+                </p>
+
+                <div className="smtp-config-grid">
+                  <div className="smtp-config-row"><span>Host</span><code>{process.env.NEXT_PUBLIC_SMTP_HOST || 'Set via SMTP_HOST in .env'}</code></div>
+                  <div className="smtp-config-row"><span>Port</span><code>{process.env.NEXT_PUBLIC_SMTP_PORT || 'Set via SMTP_PORT in .env'}</code></div>
+                  <div className="smtp-config-row"><span>From</span><code>{process.env.NEXT_PUBLIC_SMTP_FROM || 'Set via SMTP_FROM in .env'}</code></div>
+                </div>
+
+                <button
+                  type="button"
+                  className="test-email-btn"
+                  onClick={handleTestEmail}
+                  disabled={testEmailSending}
+                >
+                  {testEmailSending ? 'Sending test email…' : '✉ Send Test Email'}
+                </button>
+
+                {testEmailResult && (
+                  <div className={`smtp-test-result ${testEmailResult.success ? 'smtp-ok' : 'smtp-fail'}`}>
+                    {testEmailResult.success ? (
+                      <>
+                        <strong>✓ Email sent successfully</strong> to <code>{testEmailResult.sentTo}</code>
+                        {testEmailResult.smtpConfig && (
+                          <div className="smtp-result-config">
+                            <span>Host: <code>{testEmailResult.smtpConfig.host}:{testEmailResult.smtpConfig.port}</code></span>
+                            <span>TLS: <code>{testEmailResult.smtpConfig.secure ? 'SSL (465)' : 'STARTTLS'}</code></span>
+                            <span>From: <code>{testEmailResult.smtpConfig.from}</code></span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <strong>✗ Failed to send</strong>
+                        <div className="smtp-error-msg">{testEmailResult.error}</div>
+                        {testEmailResult.smtpConfig && (
+                          <div className="smtp-result-config">
+                            <span>Host tried: <code>{testEmailResult.smtpConfig.host}:{testEmailResult.smtpConfig.port}</code></span>
+                            <span>User: <code>{testEmailResult.smtpConfig.user}</code></span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="setting-actions" style={{ marginTop: '12px' }}>

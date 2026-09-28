@@ -11,6 +11,7 @@ import { statusOf } from '../lib/status.js';
 import { useAuth } from './auth/AuthContext.jsx';
 import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 import { DashboardChat } from './DashboardChat.jsx';
+import { SystemMonitoring } from './SystemMonitoring.jsx';
 
 const LOGO_URL = '/apx-logo.png';
 
@@ -345,7 +346,16 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 aria-selected={view === 'snapshot'}
                 onClick={() => setView('snapshot')}
               >
-                Metrics overview
+                Basis Monitoring
+              </button>
+              <button
+                type="button"
+                role="tab"
+                className="tab"
+                aria-selected={view === 'system'}
+                onClick={() => setView('system')}
+              >
+                System Monitoring
               </button>
               <button
                 type="button"
@@ -363,7 +373,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 type="button"
                 className={`view-toggle-btn ${layoutMode === 'tiles' ? 'active' : ''}`}
                 onClick={() => {
-                  if (view !== 'snapshot') setView('snapshot');
+                  if (view === 'history') setView('snapshot');
                   setLayoutMode('tiles');
                 }}
                 title="Tile View (Grid)"
@@ -379,7 +389,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 type="button"
                 className={`view-toggle-btn ${layoutMode === 'list' ? 'active' : ''}`}
                 onClick={() => {
-                  if (view !== 'snapshot') setView('snapshot');
+                  if (view === 'history') setView('snapshot');
                   setLayoutMode('list');
                 }}
                 title="List View (Table)"
@@ -407,6 +417,12 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 />
                 <TrendPanel trends={dashboard.trends} sid={card.sid} />
               </>
+            ) : view === 'system' ? (
+              <SystemMonitoring
+                card={visibleCard}
+                runLabel={`${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
+                layoutMode={layoutMode}
+              />
             ) : (
               <HistoryTable rows={history} sid={card.sid} />
             )}

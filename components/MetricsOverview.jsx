@@ -33,6 +33,12 @@ const STATIC_REACHABILITY_TILES = [
   statusIcon: { ok: true },
 }));
 
+// Keys owned by the System Monitoring tab — excluded from Basis Monitoring.
+const SYSTEM_MONITORING_KEYS = new Set([
+  'locked', 'inactive', 'highPriv', 'unassignedRoles', 'ghostRoles',
+  'unusedProfiles', 'unusedTcodes', 'undeletedUsers', 'redundantRoles', 'emptyShell',
+]);
+
 const FAVORITES_STORAGE_KEY = 'sap_dashboard_favorites';
 
 function matchesFilter(tile, priorityFilter) {
@@ -102,7 +108,7 @@ export function MetricsOverview({ card, endpoints, runLabel, priorityFilter = 'a
     ...[card.dataVol, card.logVol, card.freeApp, card.freeDb].filter(Boolean).map((m) =>
       volumeTile(m, { pie: true })
     ),
-    ...card.params.map(paramTile),
+    ...card.params.filter((p) => !SYSTEM_MONITORING_KEYS.has(p.key)).map(paramTile),
     ...STATIC_REACHABILITY_TILES,
   ];
 
