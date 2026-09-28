@@ -1,6 +1,22 @@
 import json
+import re
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from app.llm.groq_client import get_chat_model
+from app.config import settings
+
+_DASHBOARD_KEYWORDS = re.compile(
+    r'\b(sap|sid|system|dashboard|status|alert|check|volume|certificate|strust|'
+    r'health|monitor|batch|job|error|fail|warning|disk|memory|space|param|'
+    r'landscape|endpoint|trend|anomal)\b',
+    re.IGNORECASE,
+)
+
+def _is_dashboard_query(messages: list[dict]) -> bool:
+    """Return True only if the latest user message is about the SAP dashboard."""
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            return bool(_DASHBOARD_KEYWORDS.search(msg.get("content", "")))
+    return False
 
 def prune_context(context: dict) -> dict:
     if not isinstance(context, dict):
@@ -54,22 +70,28 @@ def get_chat_response(messages: list[dict], context: dict) -> str:
     # Create the LLM instance
     llm = get_chat_model("chat")  # fallback to default
 
-    # Prune and compact context to stay well under token limits
-    compact_ctx = prune_context(context)
-    compact_json = json.dumps(compact_ctx, separators=(',', ':'))
+    dashboard_sharing_enabled = settings.SEND_DASHBOARD_DATA_TO_LLM.strip().lower() == "yes"
 
-    # Hard-limit context string length if still too large (max ~10k chars / ~2.5k tokens)
-    if len(compact_json) > 10000:
-        compact_json = compact_json[:10000] + "... [truncated]"
+    # If the query is about the dashboard but sharing is disabled, refuse early
+    if _is_dashboard_query(messages) and not dashboard_sharing_enabled:
+        return (
+            "Dashboard data sharing is disabled. "
+            "To allow the assistant to answer questions about your SAP system, "
+            "set `SEND_DASHBOARD_DATA_TO_LLM=yes` in your `.env` file and restart the server."
+        )
 
-    # Build the system prompt using the context
+    # Only attach dashboard data when sharing is enabled AND the query needs it
+    if dashboard_sharing_enabled and _is_dashboard_query(messages):
+        compact_ctx = prune_context(context)
+        compact_json = json.dumps(compact_ctx, separators=(',', ':'))
+        if len(compact_json) > 10000:
+            compact_json = compact_json[:10000] + "... [truncated]"
+        context_block = f"\nCurrent dashboard state:\n{compact_json}\n"
+    else:
+        context_block = ""
+
     system_prompt = f"""You are a helpful SAP Monitoring Dashboard AI Assistant.
-You have access to the following current dashboard state/context to answer user queries:
-
-{compact_json}
-
-Use this information to answer user questions, such as identifying failing checks, expiring certificates, or overall system health. Be concise, actionable, and helpful. Format your responses in Markdown.
-"""
+Answer the user's question concisely and accurately. Format responses in Markdown.{context_block}"""
 
     # Convert the messages into LangChain message objects (limit history to last 10 messages)
     lc_messages = [SystemMessage(content=system_prompt)]
