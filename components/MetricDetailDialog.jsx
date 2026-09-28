@@ -19,6 +19,14 @@ const ROW_LIST_CHECKS = new Set([
   'sm20',
   'sm21',
   'sm58',
+  'locked',
+  'inactive',
+  'highPriv',
+  'unassignedRoles',
+  'ghostRoles',
+  'unusedProfiles',
+  'unusedTcodes',
+  'emptyShell',
 ]);
 
 /**
@@ -198,6 +206,60 @@ const DETAIL_TABLE_SPECS = {
       l.messageText ?? '—',
       l.slgData ?? '—',
     ],
+  },
+  locked: {
+    heading: (n) => `Locked users (${n})`,
+    caption: (sid) => `Locked SAP users for ${sid}`,
+    columns: ['Username (BNAME)', 'First Name', 'Last Name'],
+    cells: (u) => [u.userName ?? '—', u.firstName ?? '—', u.lastName ?? '—'],
+  },
+  emptyShell: {
+    heading: (n) => `Empty shell users (${n})`,
+    caption: (sid) => `Users with expired or no roles for ${sid}`,
+    columns: ['BNAME', 'AGR_NAME', 'User Valid', 'Role Valid', 'Status'],
+    cells: (u) => [
+      u.userName ?? '—',
+      u.agrName || '—',
+      u.userValid || '—',
+      u.roleValid || '—',
+      u.status ?? '—',
+    ],
+  },
+  ghostRoles: {
+    heading: (n) => `Unused roles (${n})`,
+    caption: (sid) => `Unused SAP roles for ${sid}`,
+    columns: ['BNAME', 'AGR_NAME', 'Status'],
+    cells: (r) => [r.userName ?? '—', r.roleName ?? '—', r.status ?? '—'],
+  },
+  unusedProfiles: {
+    heading: (n) => `Unused profiles (${n})`,
+    caption: (sid) => `Unused SAP profiles for ${sid}`,
+    columns: ['AGR_NAME', 'Profile'],
+    cells: (r) => [r.agrName ?? '—', r.profile ?? '—'],
+  },
+  unusedTcodes: {
+    heading: (n) => `Unused T-Codes (${n})`,
+    caption: (sid) => `Unused custom T-Codes for ${sid}`,
+    columns: ['T-Code', 'AGR_NAME', 'Status'],
+    cells: (r) => [r.tcode ?? '—', r.agrName ?? '—', r.status ?? '—'],
+  },
+  unassignedRoles: {
+    heading: (n) => `Unassigned roles (${n})`,
+    caption: (sid) => `Unassigned SAP roles for ${sid}`,
+    columns: ['AGR_NAME'],
+    cells: (r) => [r.roleName ?? '—'],
+  },
+  inactive: {
+    heading: (n) => `Inactive users (${n})`,
+    caption: (sid) => `Inactive SAP users for ${sid}`,
+    columns: ['Username (BNAME)', 'First Name', 'Last Name'],
+    cells: (u) => [u.userName ?? '—', u.firstName ?? '—', u.lastName ?? '—'],
+  },
+  highPriv: {
+    heading: (n) => `High privilege users (${n})`,
+    caption: (sid) => `High privilege SAP users for ${sid}`,
+    columns: ['Username (BNAME)', 'Profile', 'Client'],
+    cells: (u) => [u.userName ?? '—', u.profile ?? '—', u.client ?? '—'],
   },
   sm58: {
     heading: (n) => `Pending tRFCs (${n})`,

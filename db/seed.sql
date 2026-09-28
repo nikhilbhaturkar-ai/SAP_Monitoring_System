@@ -41,7 +41,17 @@ INSERT INTO checks (key, label, normal_text, is_info, is_volume, sort_order) VAL
   ('strust15d',   'STRUST — SSL Certificates Expiring in 15 Days', '0',     FALSE, FALSE, 32),
   ('freeApp', 'Free Memory — App Server',    NULL,                          TRUE,  TRUE,  160),
   ('freeDb',  'Free Memory — Database',      NULL,                          TRUE,  TRUE,  170),
-  ('urlStatus','Endpoint Availability',      'accessable',                  FALSE, FALSE, 180)
+  ('urlStatus','Endpoint Availability',      'accessable',                  FALSE, FALSE, 180),
+  ('locked',  'Locked Users',                '0',                           FALSE, FALSE, 190),
+  ('inactive','Inactive Users',              '0',                           FALSE, FALSE, 200),
+  ('highPriv','High Privilege Users',        '0',                           FALSE, FALSE, 210),
+  ('unassignedRoles','Unassigned Roles',     '0',                           FALSE, FALSE, 220),
+  ('ghostRoles','Unused Roles (Ghost)',       '0',                           FALSE, FALSE, 230),
+  ('unusedProfiles','Unused Profiles',        '0',                           FALSE, FALSE, 240),
+  ('unusedTcodes','Unused T-Codes',           '0',                           FALSE, FALSE, 250),
+  ('undeletedUsers','Undeleted Users',        '0',                           FALSE, FALSE, 260),
+  ('redundantRoles','Redundant Roles',        '0',                           FALSE, FALSE, 270),
+  ('emptyShell','Empty Shell Users',          '0',                           FALSE, FALSE, 280)
 ON CONFLICT (key) DO UPDATE
   SET label = EXCLUDED.label,
       normal_text = EXCLUDED.normal_text,
