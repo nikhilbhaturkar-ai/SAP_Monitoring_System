@@ -22,7 +22,20 @@ const SYSTEM_MONITORING_KEYS = [
 
 const FAVORITES_STORAGE_KEY = 'sap_system_monitoring_favorites';
 
-export function SystemMonitoring({ card, runLabel, layoutMode = 'tiles' }) {
+function matchesFilter(tile, priorityFilter) {
+  if (!priorityFilter || priorityFilter === 'all') return true;
+  const status = String(tile.status || '').toLowerCase();
+  const severity = String(tile.severity || '').toLowerCase();
+  if (priorityFilter === 'critical') return status === 'critical' || severity === 'critical';
+  if (priorityFilter === 'warning') {
+    return status === 'warning' || status === 'serious' || status === 'info' || status === 'elevated'
+      || severity === 'warning' || severity === 'serious';
+  }
+  if (priorityFilter === 'good') return status === 'ok' || status === 'normal' || status === 'healthy' || status === 'good';
+  return true;
+}
+
+export function SystemMonitoring({ card, runLabel, layoutMode = 'tiles', priorityFilter = 'all' }) {
   const [openTile, setOpenTile] = useState(null);
   const closeDialog = useCallback(() => setOpenTile(null), []);
 
@@ -52,7 +65,8 @@ export function SystemMonitoring({ card, runLabel, layoutMode = 'tiles' }) {
     .map(paramTile);
 
   const tileMap = new Map(tiles.map((t) => [t.key, t]));
-  const favoriteTiles = favorites.map((k) => tileMap.get(k)).filter(Boolean);
+  const filteredTiles = tiles.filter((t) => matchesFilter(t, priorityFilter));
+  const favoriteTiles = favorites.map((k) => tileMap.get(k)).filter(Boolean).filter((t) => matchesFilter(t, priorityFilter));
 
   return (
     <section className="mgroup" aria-label={`System monitoring for ${card?.sid}`}>
@@ -69,9 +83,18 @@ export function SystemMonitoring({ card, runLabel, layoutMode = 'tiles' }) {
             Data will appear here once the SAP collector is connected and returns user / role checks.
           </p>
         </div>
+      ) : filteredTiles.length === 0 ? (
+        <div className="card state-panel" style={{ padding: '36px', textAlign: 'center' }}>
+          <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-primary)' }}>
+            <strong>No metric tiles match the "{priorityFilter.toUpperCase()}" priority filter.</strong>
+          </p>
+          <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+            Select another priority filter or switch to <em>All Priorities</em> to view all metrics.
+          </p>
+        </div>
       ) : layoutMode === 'list' ? (
         <MetricsListView
-          tiles={tiles}
+          tiles={filteredTiles}
           favoriteTiles={favoriteTiles}
           favorites={favorites}
           onToggleFavorite={toggleFavorite}
@@ -79,7 +102,7 @@ export function SystemMonitoring({ card, runLabel, layoutMode = 'tiles' }) {
         />
       ) : (
         <div className="mtile-grid">
-          {tiles.map((tile) => (
+          {filteredTiles.map((tile) => (
             <MetricTile
               key={tile.key}
               tile={tile}

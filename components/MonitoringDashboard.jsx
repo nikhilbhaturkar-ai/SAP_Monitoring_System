@@ -422,6 +422,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 card={visibleCard}
                 runLabel={`${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
                 layoutMode={layoutMode}
+                priorityFilter={priorityFilter}
               />
             ) : (
               <HistoryTable rows={history} sid={card.sid} />
