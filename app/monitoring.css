@@ -2851,6 +2851,288 @@ button {
   color: var(--status-critical);
 }
 
+/* ── Reporting Panel ────────────────────────────────────────────────────── */
+.reporting-panel {
+  padding: 4px 0 32px;
+}
+
+.reporting-header {
+  margin-bottom: 20px;
+}
+
+.reporting-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.reporting-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.reporting-msg {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+.reporting-msg-success { background: #e6f4ea; color: #1a7f3c; border: 1px solid #a8d5b5; }
+.reporting-msg-error   { background: #fce8e6; color: #c0392b; border: 1px solid #f5b7b1; }
+
+.reporting-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.reporting-section {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+
+.reporting-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reporting-date-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reporting-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.reporting-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reporting-input {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2, var(--surface-1));
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.reporting-input:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14,165,233,0.15);
+}
+
+.reporting-date-sep {
+  font-size: 16px;
+  color: var(--text-muted);
+  padding-bottom: 8px;
+}
+
+.reporting-preset-btn {
+  padding: 8px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary, var(--text-primary));
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.reporting-preset-btn:hover {
+  background: rgba(14,165,233,0.08);
+  border-color: #0ea5e9;
+  color: #0ea5e9;
+}
+
+.reporting-all-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+.reporting-all-label input { width: 15px; height: 15px; cursor: pointer; }
+
+.reporting-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  background: rgba(14,165,233,0.15);
+  color: #0ea5e9;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.reporting-tiles-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 700px) { .reporting-tiles-grid { grid-template-columns: 1fr; } }
+
+.reporting-tile-group {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.reporting-group-header {
+  background: var(--surface-2, rgba(14,165,233,0.05));
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.reporting-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.reporting-group-label input { width: 14px; height: 14px; cursor: pointer; }
+.reporting-group-name { flex: 1; }
+
+.reporting-check-list {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.reporting-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, var(--text-primary));
+  cursor: pointer;
+  padding: 3px 4px;
+  border-radius: 5px;
+  transition: background 0.1s;
+}
+.reporting-check-item:hover { background: rgba(14,165,233,0.06); }
+.reporting-check-item input { width: 13px; height: 13px; cursor: pointer; }
+
+.reporting-warn {
+  font-size: 12px;
+  color: #d97706;
+  margin-top: 8px;
+}
+
+.reporting-format-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.reporting-format-card {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.reporting-format-card input { display: none; }
+.reporting-format-card.active {
+  border-color: #0ea5e9;
+  background: rgba(14,165,233,0.06);
+}
+.reporting-format-card:hover:not(.active) {
+  border-color: rgba(14,165,233,0.4);
+}
+
+.reporting-format-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.reporting-format-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.reporting-submit-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.reporting-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 24px;
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.reporting-submit-btn:hover:not(:disabled) { background: #0284c7; }
+.reporting-submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.reporting-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.reporting-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
 /* Dashboard Footer */
 .dashboard-footer {
   margin-top: 40px;
