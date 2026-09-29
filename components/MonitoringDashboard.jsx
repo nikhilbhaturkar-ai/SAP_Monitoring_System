@@ -12,6 +12,7 @@ import { useAuth } from './auth/AuthContext.jsx';
 import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 import { DashboardChat } from './DashboardChat.jsx';
 import { SystemMonitoring } from './SystemMonitoring.jsx';
+import { ExportButtons } from './ExportButtons.jsx';
 
 const LOGO_URL = '/mpower-logo.png';
 
@@ -29,6 +30,11 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
   const [loading, setLoading] = useState(true);
   const [forceRunning, setForceRunning] = useState(false);
 
+  // Historical date/time picker state
+  const [asOf, setAsOf] = useState(null);           // null = live/latest
+  const [availableRuns, setAvailableRuns] = useState([]);  // [{date, runAt}]
+  const [selectedDate, setSelectedDate] = useState('');    // YYYY-MM-DD string
+
   // Refetch keeps the frame: hold the previous render at reduced opacity.
   const hasRendered = useRef(false);
 
@@ -36,7 +42,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
     setLoading(true);
     setError(null);
     try {
-      const [next, historyRows] = await Promise.all([api.dashboard(sid), api.history(sid)]);
+      const [next, historyRows] = await Promise.all([api.dashboard(sid, asOf), api.history(sid)]);
       setDashboard(next);
       setHistory(historyRows);
       hasRendered.current = true;
@@ -45,7 +51,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
     } finally {
       setLoading(false);
     }
-  }, [sid]);
+  }, [sid, asOf]);
 
   const handleForceRun = async () => {
     if (forceRunning) return;
@@ -102,6 +108,15 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
       setSid(visibleSystems[0].sid);
     }
   }, [visibleSystems, sid]);
+
+  // Fetch available run dates/times for the current SID, reset selection on change
+  useEffect(() => {
+    setAsOf(null);
+    setSelectedDate('');
+    api.systemRuns(sid)
+      .then(runs => setAvailableRuns(runs))
+      .catch(() => setAvailableRuns([]));
+  }, [sid]);
 
   if (error && !dashboard) {
     return (
@@ -304,26 +319,80 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               </select>
             </label>
 
-            <span className="scope-chip scope-chip-static">
-              <span className="scope-chip-label">Latest run</span>
-              {dashboard.latestRun.label}, {new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}
-            </span>
+            {/* Historical date picker */}
+            {availableRuns.length > 0 && (() => {
+              // Group runs by date for the two-step picker
+              const dateMap = new Map();
+              for (const r of availableRuns) {
+                const d = typeof r.date === 'string' ? r.date.slice(0, 10) : String(r.date).slice(0, 10);
+                if (!dateMap.has(d)) dateMap.set(d, []);
+                dateMap.get(d).push(r.runAt);
+              }
+              const dates = [...dateMap.keys()].sort((a, b) => b.localeCompare(a));
 
-            <button
-              type="button"
-              className="force-run-btn"
-              onClick={handleForceRun}
-              disabled={forceRunning}
-              title="Forcefully run worker job at backend and refresh dashboard data"
-            >
-              {forceRunning ? (
+              return (
                 <>
-                  <span className="force-spinner" /> Running...
+                  <label className="scope-chip">
+                    <span className="scope-chip-label">View Date</span>
+                    <select
+                      value={selectedDate}
+                      onChange={(e) => {
+                        const d = e.target.value;
+                        setSelectedDate(d);
+                        if (!d) {
+                          setAsOf(null);
+                        } else {
+                          // Default to the first (latest) available time for that date
+                          setAsOf(d);
+                        }
+                      }}
+                    >
+                      <option value="">Latest</option>
+                      {dates.map(d => (
+                        <option key={d} value={d}>
+                          {new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </>
-              ) : (
-                '⚡ Force Run'
-              )}
-            </button>
+              );
+            })()}
+
+            <span className={`scope-chip scope-chip-static${asOf ? ' scope-chip-historical' : ''}`}>
+              <span className="scope-chip-label">{asOf ? 'Viewing' : 'Latest run'}</span>
+              {dashboard.latestRun.label}{asOf ? '' : `, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
+              {asOf && <span className="historical-badge">Historical</span>}
+            </span>
+            {asOf && (
+              <button
+                type="button"
+                className="force-run-btn"
+                style={{ background: 'var(--color-warning, #f59e0b)', color: '#fff', borderColor: 'transparent' }}
+                onClick={() => { setAsOf(null); setSelectedDate(''); }}
+                title="Return to live data"
+              >
+                Back to Live
+              </button>
+            )}
+
+            {!asOf && (
+              <button
+                type="button"
+                className="force-run-btn"
+                onClick={handleForceRun}
+                disabled={forceRunning}
+                title="Forcefully run worker job at backend and refresh dashboard data"
+              >
+                {forceRunning ? (
+                  <>
+                    <span className="force-spinner" /> Running...
+                  </>
+                ) : (
+                  '⚡ Force Run'
+                )}
+              </button>
+            )}
 
             <span className="filters-spacer" />
             <AlertsBell alerts={dashboard.alerts} sid={card.sid} allTiles={visibleTiles} onOpenDetail={setOpenTile} />
@@ -368,6 +437,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               </button>
             </div>
 
+            <div className="view-right-controls">
             <div className="view-toggle-group" role="radiogroup" aria-label="Layout view mode">
               <button
                 type="button"
@@ -401,6 +471,14 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 </svg>
                 <span>List View</span>
               </button>
+            </div>
+
+            <ExportButtons
+              dashboard={dashboard}
+              sid={card.sid}
+              userEmail={user?.email ?? ''}
+              userName={user?.name ?? ''}
+            />
             </div>
           </div>
 

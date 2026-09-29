@@ -6,7 +6,8 @@ export async function GET(request, { params }) {
   try {
     const { sid } = await params;
     const { searchParams } = new URL(request.url);
-    const data = await buildDashboard(sid.toUpperCase(), windowDaysFrom(searchParams));
+    const asOf = searchParams.get('asOf') || null;
+    const data = await buildDashboard(sid.toUpperCase(), windowDaysFrom(searchParams), asOf);
     return NextResponse.json(data);
   } catch (err) {
     const status = err.status || 500;
