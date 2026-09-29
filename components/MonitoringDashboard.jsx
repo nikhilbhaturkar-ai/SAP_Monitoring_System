@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../lib/api.js';
 import { AlertsBell } from './AlertsBell.jsx';
 import { MetricsOverview } from './MetricsOverview.jsx';
@@ -14,15 +15,20 @@ import { DashboardChat } from './DashboardChat.jsx';
 import { SystemMonitoring } from './SystemMonitoring.jsx';
 import { ExportButtons } from './ExportButtons.jsx';
 
-const LOGO_URL = '/mpower-logo.png';
+const DEFAULT_LOGO = '/mpower-logo.png';
 
 export default function MonitoringDashboard({ appSwitcher = null }) {
   const { user, logout } = useAuth();
   const [sid, setSid] = useState('MSD');
+  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO);
   const [view, setView] = useState('snapshot');
   const [layoutMode, setLayoutMode] = useState('tiles'); // 'tiles' | 'list'
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [openTile, setOpenTile] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuTriggerRef = useRef(null);
+  const [userMenuPos, setUserMenuPos] = useState({ top: 0, right: 0 });
 
   const [dashboard, setDashboard] = useState(null);
   const [history, setHistory] = useState(null);
@@ -73,6 +79,13 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
   // Auto-refresh interval from admin settings (in minutes)
   const [refreshIntervalMins, setRefreshIntervalMins] = useState(15);
+
+  useEffect(() => {
+    fetch('/api/company-logo')
+      .then(r => r.json())
+      .then(d => { if (d.logoUrl) setLogoUrl(d.logoUrl); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/admin/settings')
@@ -177,55 +190,75 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
       {/* 1. TOP HEADER SECTION */}
       <header className="top-header">
         <div className="header-brand">
-          <img className="header-logo" src={LOGO_URL} alt="APx Technology" />
+          <img className="header-logo" src={logoUrl} alt="APx Technology" />
         </div>
 
         <div className="header-center">
           {appSwitcher && <div className="header-app-switcher">{appSwitcher}</div>}
-          <h2 className="dashboard-title" style={{ 'marginTop': '10px' }}>ApxOps - The Autonomous SAP Monitoring Platform</h2>
-          <span className="nav-item-content" style={{ 'marginTop': '20px', 'marginBottom': '20px' }}>The agile AIOps platform built to replace manual system checks, eliminate alert fatigue,
-            and keep your core SAP infrastructure running at peak performance.</span>
+          <h2 className="dashboard-title" style={{ 'marginTop': '10px' }}>ApxOps - SAP Monitoring Platform</h2>
+          <span className="header-tagline">Agile AIOps platform replacing manual checks and optimizing SAP performance</span>
         </div>
 
         <div className="header-actions">
           {user && (
-            <div className="user-profile-wrapper" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-              <div className="user-profile-badge">
-                <div className="user-avatar" title={`Logged in as ${user.name}`}>
+            <div className="user-menu-wrapper">
+              <button
+                type="button"
+                ref={userMenuTriggerRef}
+                className="user-menu-trigger"
+                onClick={() => {
+                  if (!userMenuOpen) {
+                    const r = userMenuTriggerRef.current?.getBoundingClientRect();
+                    if (r) setUserMenuPos({ top: r.bottom + window.scrollY + 8, right: window.innerWidth - r.right });
+                  }
+                  setUserMenuOpen(o => !o);
+                }}
+                aria-haspopup="true"
+                aria-expanded={userMenuOpen}
+              >
+                <div className="user-avatar">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user.name}</span>
                   <span className="user-role">{user.role}</span>
                 </div>
-                <button
-                  type="button"
-                  className="logout-btn"
-                  onClick={logout}
-                  title="Sign out of SAP Basis Monitoring"
-                >
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
-                    <path
-                      fillRule="evenodd"
-                      d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"
-                      clipRule="evenodd"
-                    />
-                    <path
-                      fillRule="evenodd"
-                      d="M6 10a.75.75 0 01.75-.75h9.546l-2.028-1.97a.75.75 0 011.06-1.06l3.3 3.208a.75.75 0 010 1.066l-3.3 3.208a.75.75 0 01-1.06-1.06l2.028-1.972H6.75A.75.75 0 016 10z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span>Sign Out</span>
-                </button>
-              </div>
-              {user.role === 'Lead Administrator' && (
-                <a href="/admin" className="admin-settings-link">
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true" style={{ marginRight: '5px' }}>
-                    <path fillRule="evenodd" d="M7.84 1.804A1.5 1.5 0 019.14 1h1.72a1.5 1.5 0 011.3 1.804l-.275 1.235c.196.115.385.244.565.386l1.21-.36a1.5 1.5 0 011.758.742l.86 1.49a1.5 1.5 0 01-.318 1.875l-.974.846c.018.196.027.395.027.596s-.009.4-.027.596l.974.846a1.5 1.5 0 01.318 1.875l-.86 1.49a1.5 1.5 0 01-1.758.742l-1.21-.36a6.002 6.002 0 00-.565.386l.275 1.235a1.5 1.5 0 01-1.3 1.804H9.14a1.5 1.5 0 01-1.3-1.804l.275-1.235a6.002 6.002 0 00-.565-.386l-1.21.36a1.5 1.5 0 01-1.758-.742l-.86-1.49a1.5 1.5 0 01.318-1.875l.974-.846A6.082 6.082 0 014 10c0-.201.009-.4.027-.596l-.974-.846a1.5 1.5 0 01-.318-1.875l.86-1.49a1.5 1.5 0 011.758-.742l1.21.36c.18-.142.369-.271.565-.386L7.84 1.804zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                  </svg>
-                  Admin Settings
-                </a>
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true"
+                  style={{ flexShrink: 0, opacity: 0.6, transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                </svg>
+              </button>
+
+              {userMenuOpen && typeof document !== 'undefined' && createPortal(
+                <>
+                  <div className="user-menu-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setUserMenuOpen(false)} />
+                  <div className="user-menu-dropdown" role="menu" style={{ position: 'fixed', top: userMenuPos.top, right: userMenuPos.right, zIndex: 9999 }}>
+                    <div className="user-menu-header">
+                      <div className="user-menu-avatar">{user.name.charAt(0).toUpperCase()}</div>
+                      <div>
+                        <div className="user-menu-name">{user.name}</div>
+                        <div className="user-menu-role">{user.role}</div>
+                      </div>
+                    </div>
+                    <div className="user-menu-divider" />
+                    {user.role === 'Lead Administrator' && (
+                      <a href="/admin" className="user-menu-item" role="menuitem" onClick={() => setUserMenuOpen(false)}>
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
+                          <path fillRule="evenodd" d="M7.84 1.804A1.5 1.5 0 019.14 1h1.72a1.5 1.5 0 011.3 1.804l-.275 1.235c.196.115.385.244.565.386l1.21-.36a1.5 1.5 0 011.758.742l.86 1.49a1.5 1.5 0 01-.318 1.875l-.974.846c.018.196.027.395.027.596s-.009.4-.027.596l.974.846a1.5 1.5 0 01.318 1.875l-.86 1.49a1.5 1.5 0 01-1.758.742l-1.21-.36a6.002 6.002 0 00-.565.386l.275 1.235a1.5 1.5 0 01-1.3 1.804H9.14a1.5 1.5 0 01-1.3-1.804l.275-1.235a6.002 6.002 0 00-.565-.386l-1.21.36a1.5 1.5 0 01-1.758-.742l-.86-1.49a1.5 1.5 0 01.318-1.875l.974-.846A6.082 6.082 0 014 10c0-.201.009-.4.027-.596l-.974-.846a1.5 1.5 0 01-.318-1.875l.86-1.49a1.5 1.5 0 011.758-.742l1.21.36c.18-.142.369-.271.565-.386L7.84 1.804zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                        </svg>
+                        Admin Settings
+                      </a>
+                    )}
+                    <button type="button" className="user-menu-item user-menu-item-danger" role="menuitem" onClick={logout}>
+                      <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15" aria-hidden="true">
+                        <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M6 10a.75.75 0 01.75-.75h9.546l-2.028-1.97a.75.75 0 011.06-1.06l3.3 3.208a.75.75 0 010 1.066l-3.3 3.208a.75.75 0 01-1.06-1.06l2.028-1.972H6.75A.75.75 0 016 10z" clipRule="evenodd" />
+                      </svg>
+                      Sign Out
+                    </button>
+                  </div>
+                </>,
+                document.body
               )}
             </div>
           )}
@@ -235,9 +268,25 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
       {/* DASHBOARD BODY (SIDEBAR + MAIN CONTENTS) */}
       <div className="dashboard-body">
         {/* 2. SIDEBAR SECTION */}
-        <aside className="sidebar">
+        <aside className={`sidebar${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+          {/* Collapse toggle */}
+          <button
+            type="button"
+            className="sidebar-toggle-btn"
+            onClick={() => setSidebarCollapsed(c => !c)}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="#ffffff" aria-hidden="true"
+              style={{ transform: sidebarCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
+              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </button>
+
           <div className="sidebar-section">
-            <div className="sidebar-section-title">SAP Systems ({visibleSystems.length})</div>
+            {!sidebarCollapsed && (
+              <div className="sidebar-section-title">SAP Systems ({visibleSystems.length})</div>
+            )}
 
             {/* Desktop Navigation */}
             <nav className="sidebar-nav" aria-label="System navigation">
@@ -253,6 +302,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                     className={`sidebar-nav-item ${isSelected ? 'active' : ''}`}
                     onClick={() => setSid(system.sid)}
                     aria-current={isSelected ? 'page' : undefined}
+                    title={sidebarCollapsed ? `${system.sid}${hasAlerts ? ` — ${alertCount} alerts` : ''}` : undefined}
                   >
                     <span
                       className={`status-dot ${hasAlerts ? 'warning' : 'good'}`}
@@ -261,7 +311,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                     <div className="nav-item-content">
                       <div className="nav-item-sid">{system.sid}</div>
                     </div>
-                    {info && (
+                    {!sidebarCollapsed && info && (
                       <span
                         className={`sidebar-alert-badge ${hasAlerts ? 'has-alerts' : 'healthy'}`}
                         title={hasAlerts ? `${alertCount} open alerts` : 'Healthy (0 alerts)'}

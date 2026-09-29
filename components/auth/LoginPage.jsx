@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext.jsx';
 
 const TEST_ACCOUNTS = [
@@ -8,12 +8,20 @@ const TEST_ACCOUNTS = [
   { userId: 'operator', password: 'sap123', name: 'Basis Operator', avatar: 'BO' }
 ];
 
-const LOGO_URL = '/mpower-logo.png';
+const DEFAULT_LOGO = '/mpower-logo.png';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO);
+
+  useEffect(() => {
+    fetch('/api/company-logo')
+      .then(r => r.json())
+      .then(d => { if (d.logoUrl) setLogoUrl(d.logoUrl); })
+      .catch(() => {});
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,6 +61,9 @@ export default function LoginPage() {
 
       <div className="login-card">
         <div className="login-header">
+          <div className="login-logo-wrap">
+            <img src={logoUrl} alt="Company logo" className="login-company-logo" />
+          </div>
           <div className="login-eyebrow">SAP Basis Operations</div>
           <h1 className="login-title">ApxOps</h1>
           <span>The Autonomous SAP Basis Monitoring Platform</span>
