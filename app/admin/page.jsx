@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/auth/AuthContext';
 import './admin.css';
@@ -40,6 +40,13 @@ export default function AdminPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletingUser, setDeletingUser] = useState(false);
 
+  // Company Settings state
+  const [currentLogoUrl, setCurrentLogoUrl] = useState(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoMsg, setLogoMsg] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const logoFileRef = useRef(null);
+
   // Email Notification UI state
   const [enableEmailNotifications, setEnableEmailNotifications] = useState(false);
   const [sendCriticalAfterHours, setSendCriticalAfterHours] = useState(false);
@@ -66,15 +73,18 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [configRes, usersRes, settingsRes] = await Promise.all([
+      const [configRes, usersRes, settingsRes, logoRes] = await Promise.all([
         fetch('/api/admin/config'),
         fetch('/api/admin/users'),
-        fetch('/api/admin/settings')
+        fetch('/api/admin/settings'),
+        fetch('/api/admin/company'),
       ]);
 
       const configData = await configRes.json();
       const usersData = await usersRes.json();
       const settingsData = await settingsRes.json();
+      const logoData = await logoRes.json();
+      if (logoData.success) setCurrentLogoUrl(logoData.logoUrl);
 
       if (configData.success) {
         setPlans(configData.plans);
@@ -154,6 +164,39 @@ export default function AdminPage() {
     } finally {
       setTestEmailSending(false);
     }
+  };
+
+  const handleLogoUpload = async (e) => {
+    e.preventDefault();
+    const file = logoFileRef.current?.files?.[0];
+    if (!file) { setLogoMsg({ type: 'error', text: 'Please select an image file first.' }); return; }
+    setLogoUploading(true);
+    setLogoMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append('logo', file);
+      const res = await fetch('/api/admin/company', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success) {
+        setCurrentLogoUrl(data.logoUrl + '?t=' + Date.now());
+        setLogoPreview(null);
+        setLogoMsg({ type: 'success', text: 'Logo uploaded successfully! It will appear on the dashboard and login page.' });
+        if (logoFileRef.current) logoFileRef.current.value = '';
+      } else {
+        setLogoMsg({ type: 'error', text: data.error || 'Upload failed.' });
+      }
+    } catch (err) {
+      setLogoMsg({ type: 'error', text: err.message });
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoRemove = async () => {
+    if (!confirm('Remove the company logo? The default logo will be shown.')) return;
+    await fetch('/api/admin/company', { method: 'DELETE' });
+    setCurrentLogoUrl(null);
+    setLogoMsg({ type: 'success', text: 'Logo removed. Default logo will be used.' });
   };
 
   const handleTileToggle = async (tileKey, isEnabled) => {
@@ -347,6 +390,12 @@ export default function AdminPage() {
           onClick={() => setActiveTab('email')}
         >
           Email Notification
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'company' ? 'active' : ''}`}
+          onClick={() => setActiveTab('company')}
+        >
+          Company Settings
         </button>
       </div>
 
@@ -656,6 +705,83 @@ export default function AdminPage() {
                 >
                   {savingSettings ? 'Saving Settings...' : 'Save Settings'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {activeTab === 'company' && (
+          <div className="tab-pane">
+            <div className="email-tab-header">
+              <h2>Company Settings</h2>
+              <p>Customize the branding of your ApxOps platform. The logo will appear on the dashboard header and login page.</p>
+            </div>
+
+            <div className="email-settings-card">
+              {logoMsg && (
+                <div className={`modal-msg ${logoMsg.type}`} style={{ margin: '0 0 16px 0' }}>
+                  {logoMsg.text}
+                </div>
+              )}
+
+              <div className="company-logo-section">
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>Current Logo</h4>
+                <div className="company-logo-preview-box">
+                  {currentLogoUrl ? (
+                    <img
+                      src={currentLogoUrl}
+                      alt="Company logo"
+                      className="company-logo-preview-img"
+                    />
+                  ) : (
+                    <span className="company-logo-placeholder">No custom logo — default logo in use</span>
+                  )}
+                </div>
+                {currentLogoUrl && (
+                  <button
+                    type="button"
+                    className="action-btn delete-btn"
+                    style={{ marginTop: '8px' }}
+                    onClick={handleLogoRemove}
+                  >
+                    Remove Logo
+                  </button>
+                )}
+              </div>
+
+              <div style={{ marginTop: '24px' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600 }}>Upload New Logo</h4>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+                  Supported formats: PNG, JPG, GIF, WebP, SVG. Recommended size: 200×60 px or similar wide aspect ratio.
+                </p>
+
+                <form onSubmit={handleLogoUpload} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '420px' }}>
+                  <input
+                    ref={logoFileRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                    className="logo-file-input"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) setLogoPreview(URL.createObjectURL(f));
+                      else setLogoPreview(null);
+                    }}
+                  />
+
+                  {logoPreview && (
+                    <div className="company-logo-preview-box" style={{ background: '#1e293b' }}>
+                      <img src={logoPreview} alt="Preview" className="company-logo-preview-img" />
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="save-btn"
+                    disabled={logoUploading}
+                    style={{ alignSelf: 'flex-start' }}
+                  >
+                    {logoUploading ? 'Uploading…' : 'Upload & Apply Logo'}
+                  </button>
+                </form>
               </div>
             </div>
           </div>

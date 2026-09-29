@@ -1628,7 +1628,7 @@ button {
 }
 
 .header-logo {
-  height: 96px;
+  height: 48px;
   width: auto;
   background: #ffffff;
   border-radius: var(--radius-inner);
@@ -1655,6 +1655,41 @@ button {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+.header-tagline {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.5;
+  max-width: 520px;
+  margin: 4px auto 0;
+  text-align: center;
+  animation: tagline-fade-in 1.2s ease forwards;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.5) 0%,
+    rgba(255,255,255,0.95) 30%,
+    rgba(255,255,255,0.95) 70%,
+    rgba(255,255,255,0.5) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: tagline-shimmer 4s linear infinite, tagline-fade-in 1.2s ease forwards;
+}
+
+@keyframes tagline-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes tagline-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -1673,11 +1708,13 @@ button {
   backdrop-filter: blur(8px);
 }
 
-.top-header .user-name {
+.top-header .user-name,
+.top-header .user-menu-trigger .user-name {
   color: #ffffff;
 }
 
-.top-header .user-role {
+.top-header .user-role,
+.top-header .user-menu-trigger .user-role {
   color: #c7d2fe;
 }
 
@@ -1737,8 +1774,45 @@ button {
   gap: 20px;
   height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   z-index: 50;
   box-shadow: 6px 0 24px rgba(1, 0, 25, 0.5), inset -1px 0 0 rgba(255, 255, 255, 0.08);
+  transition: width 0.22s ease, padding 0.22s ease;
+}
+
+.sidebar.sidebar-collapsed {
+  width: 68px;
+  padding: 16px 8px;
+}
+
+/* Collapse toggle button */
+.sidebar-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  margin-left: auto;
+  background: #0ea5e9;
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.5);
+  overflow: visible;
+}
+
+.sidebar-toggle-btn:hover {
+  background: #38bdf8;
+  box-shadow: 0 2px 12px rgba(14, 165, 233, 0.7);
+}
+
+.sidebar-collapsed .sidebar-toggle-btn {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .sidebar-brand {
@@ -1809,6 +1883,35 @@ button {
   text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
+  overflow: hidden;
+}
+
+/* Collapsed nav item — center dot + SID, hide badge */
+.sidebar-collapsed .sidebar-nav-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+}
+
+.sidebar-collapsed .nav-item-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-collapsed .nav-item-sid {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.sidebar-collapsed .sidebar-section {
+  gap: 8px;
+}
+
+.sidebar-collapsed .sidebar-nav {
+  gap: 4px;
 }
 
 .sidebar-nav-item:hover {
@@ -2041,8 +2144,8 @@ button {
   }
 
   .header-logo {
-    height: 52px;
-    padding: 4px 10px;
+    height: 28px;
+    padding: 3px 8px;
   }
 
   .header-center {
@@ -2248,6 +2351,24 @@ button {
 .login-header {
   text-align: center;
   margin-bottom: 24px;
+}
+
+.login-logo-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 10px 20px;
+  background: #0f172a;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-company-logo {
+  max-height: 56px;
+  max-width: 200px;
+  object-fit: contain;
+  display: block;
 }
 
 .login-logo-wrapper {
@@ -2543,6 +2664,127 @@ button {
   text-align: center;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+/* ── User Menu Dropdown ──────────────────────────────────────────────────── */
+.user-menu-wrapper {
+  position: relative;
+  z-index: 1100;
+}
+
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px 5px 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-pill, 999px);
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.user-menu-trigger:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.user-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1099;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  background: var(--surface-0, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  z-index: 1100;
+  overflow: hidden;
+}
+
+.user-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--surface-1, #f8fafc);
+}
+
+.user-menu-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-menu-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.user-menu-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.user-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0;
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.12s;
+}
+
+.user-menu-item:hover {
+  background: var(--surface-1, #f8fafc);
+}
+
+.user-menu-item svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.user-menu-item-danger {
+  color: #dc2626;
+}
+
+.user-menu-item-danger svg {
+  color: #dc2626;
+}
+
+.user-menu-item-danger:hover {
+  background: #fef2f2;
 }
 
 /* User Profile Masthead Badge */
