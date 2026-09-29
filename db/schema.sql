@@ -558,12 +558,10 @@ CREATE TABLE IF NOT EXISTS system_settings (
 
 INSERT INTO system_settings (key, value) VALUES
   ('enable_email_notifications', 'false'),
-  ('send_critical_after_hours', 'false'),
-  ('ignore_deduplication', 'false'),
   ('refresh_interval_mins', '15'),
-  ('office_hours_start', '09:00'),
-  ('office_hours_end', '18:00'),
-  ('office_hours_timezone', 'Asia/Kolkata')
+  ('daily_email_hour', '8'),
+  ('daily_email_timezone', 'Asia/Kolkata'),
+  ('alert_check_keys', '')
 ON CONFLICT (key) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS sent_notifications (
