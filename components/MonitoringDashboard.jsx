@@ -42,7 +42,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
     setLoading(true);
     setError(null);
     try {
-      const [next, historyRows] = await Promise.all([api.dashboard(sid, asOf), api.history(sid)]);
+      const [next, historyRows] = await Promise.all([api.dashboard(sid, asOf), api.history(sid, asOf)]);
       setDashboard(next);
       setHistory(historyRows);
       hasRendered.current = true;
