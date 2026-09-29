@@ -27,6 +27,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [openTile, setOpenTile] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [expandedParents, setExpandedParents] = useState(new Set(['MSD']));
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuTriggerRef = useRef(null);
   const [userMenuPos, setUserMenuPos] = useState({ top: 0, right: 0 });
@@ -55,6 +56,8 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
       hasRendered.current = true;
     } catch (err) {
       setError(err.message);
+      setDashboard(null);
+      setHistory(null);
     } finally {
       setLoading(false);
     }
@@ -291,38 +294,99 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
             {/* Desktop Navigation */}
             <nav className="sidebar-nav" aria-label="System navigation">
-              {visibleSystems.map((system) => {
-                const isSelected = system.sid === sid;
-                const info = landscapeMap.get(system.sid);
-                const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
-                const hasAlerts = alertCount > 0;
-                return (
-                  <button
-                    key={system.sid}
-                    type="button"
-                    className={`sidebar-nav-item ${isSelected ? 'active' : ''}`}
-                    onClick={() => setSid(system.sid)}
-                    aria-current={isSelected ? 'page' : undefined}
-                    title={sidebarCollapsed ? `${system.sid}${hasAlerts ? ` — ${alertCount} alerts` : ''}` : undefined}
-                  >
-                    <span
-                      className={`status-dot ${hasAlerts ? 'warning' : 'good'}`}
-                      title={hasAlerts ? `${alertCount} open alerts` : 'Healthy'}
-                    />
-                    <div className="nav-item-content">
-                      <div className="nav-item-sid">{system.sid}</div>
-                    </div>
-                    {!sidebarCollapsed && info && (
+              {(() => {
+                const topLevel = visibleSystems.filter(s => !s.parent_sid);
+                const childrenOf = (parentSid) => visibleSystems.filter(s => s.parent_sid === parentSid);
+
+                const renderItem = (system, isChild = false) => {
+                  const isSelected = system.sid === sid;
+                  const info = landscapeMap.get(system.sid);
+                  const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
+                  const hasAlerts = alertCount > 0;
+                  return (
+                    <button
+                      key={system.sid}
+                      type="button"
+                      className={`sidebar-nav-item ${isSelected ? 'active' : ''} ${isChild ? 'sidebar-nav-child' : ''}`}
+                      onClick={() => setSid(system.sid)}
+                      aria-current={isSelected ? 'page' : undefined}
+                      title={sidebarCollapsed ? `${system.sid}${hasAlerts ? ` — ${alertCount} alerts` : ''}` : undefined}
+                    >
                       <span
-                        className={`sidebar-alert-badge ${hasAlerts ? 'has-alerts' : 'healthy'}`}
-                        title={hasAlerts ? `${alertCount} open alerts` : 'Healthy (0 alerts)'}
+                        className={`status-dot ${hasAlerts ? 'warning' : 'good'}`}
+                        title={hasAlerts ? `${alertCount} open alerts` : 'Healthy'}
+                      />
+                      <div className="nav-item-content">
+                        <div className="nav-item-sid">
+                          {isChild
+                            ? (sidebarCollapsed
+                                ? system.name.replace(/^.*[—-]\s*Client\s*/i, 'C')  // "C100", "C150"
+                                : system.name.replace('—', '-'))                      // "MSD - Client 100"
+                            : system.sid}
+                        </div>
+                      </div>
+                      {!sidebarCollapsed && info && (
+                        <span
+                          className={`sidebar-alert-badge ${hasAlerts ? 'has-alerts' : 'healthy'}`}
+                          title={hasAlerts ? `${alertCount} open alerts` : 'Healthy (0 alerts)'}
+                        >
+                          {alertCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                };
+
+                return topLevel.map((system) => {
+                  const children = childrenOf(system.sid);
+                  const isExpanded = expandedParents.has(system.sid);
+
+                  if (children.length === 0) return renderItem(system);
+
+                  // Systems with children render as a non-clickable group label
+                  // The parent itself appears as the first child ("Client 100")
+                  const allChildren = [system, ...children];
+                  const groupAlertCount = allChildren.reduce((sum, s) => {
+                    const info = landscapeMap.get(s.sid);
+                    return sum + (info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0);
+                  }, 0);
+
+                  return (
+                    <div key={system.sid} className="sidebar-nav-group">
+                      {/* Non-clickable group header */}
+                      <div
+                        className="sidebar-nav-group-header"
+                        onClick={() => !sidebarCollapsed && setExpandedParents(prev => {
+                          const next = new Set(prev);
+                          next.has(system.sid) ? next.delete(system.sid) : next.add(system.sid);
+                          return next;
+                        })}
+                        title={sidebarCollapsed ? system.sid : undefined}
                       >
-                        {alertCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                        <span className="sidebar-group-label-dot" style={{ background: groupAlertCount > 0 ? '#f59e0b' : '#22c55e' }} />
+                        {!sidebarCollapsed && (
+                          <>
+                            <span className="sidebar-group-label-text">{system.sid}</span>
+                            <span className="sidebar-client-count">{allChildren.length}</span>
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="11" height="11"
+                              style={{ marginLeft: 'auto', opacity: 0.5, flexShrink: 0, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}
+                              aria-hidden="true">
+                              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                            </svg>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Children: parent itself as Client 100, then siblings */}
+                      {(isExpanded || sidebarCollapsed) && (
+                        <div className="sidebar-nav-children">
+                          {allChildren.map(child => renderItem(child, true))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </nav>
 
             {/* Mobile System Selector */}
@@ -339,9 +403,10 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                     const info = landscapeMap.get(system.sid);
                     const alertCount = info ? (info.openAlerts > 0 ? info.openAlerts : (info.windowAlerts > 0 ? info.windowAlerts : 0)) : 0;
                     const alertText = alertCount > 0 ? ` • ${alertCount} Alerts` : ' • Healthy';
+                    const indent = system.parent_sid ? '  ↳ ' : '';
                     return (
                       <option key={system.sid} value={system.sid}>
-                        {system.sid} ({alertCount} alerts){alertText}
+                        {indent}{system.name} ({system.sid}){alertText}
                       </option>
                     );
                   })}
@@ -412,7 +477,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
             <span className={`scope-chip scope-chip-static${asOf ? ' scope-chip-historical' : ''}`}>
               <span className="scope-chip-label">{asOf ? 'Viewing' : 'Latest run'}</span>
-              {dashboard.latestRun.label}{asOf ? '' : `, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
+              {dashboard.latestRun.label}{asOf || dashboard.noData ? '' : `, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
               {asOf && <span className="historical-badge">Historical</span>}
             </span>
             {asOf && (
@@ -454,7 +519,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
             <span aria-hidden="true">/</span>
             <span>Monitoring</span>
             <span aria-hidden="true">/</span>
-            <span className="breadcrumb-current">{card.sid} - {card.name}</span>
+            <span className="breadcrumb-current">{card.parent_sid ?? card.sid} / {card.name}</span>
           </nav>
 
           <div className="view-header-row">
@@ -543,7 +608,15 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
           </div>
 
           <div className={loading && hasRendered.current ? 'is-stale' : undefined}>
-            {view === 'snapshot' ? (
+            {dashboard.noData ? (
+              <div className="card state-panel" style={{ marginTop: 24, textAlign: 'center', padding: '48px 24px' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+                <strong style={{ fontSize: '1.1rem' }}>No monitoring data yet for {card.name}</strong>
+                <p style={{ marginTop: 8, color: 'var(--color-text-muted, #888)' }}>
+                  Run <code>npm run import</code> to load historical data, or configure SAP API endpoints so the collector can start polling this system.
+                </p>
+              </div>
+            ) : view === 'snapshot' ? (
               <>
                 <MetricsOverview
                   card={visibleCard}
@@ -581,7 +654,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               tile={openTile}
               sid={card.sid}
               systemName={card.name}
-              runLabel={`${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
+              runLabel={dashboard.noData ? dashboard.latestRun.label : `${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
               onClose={() => setOpenTile(null)}
             />
           )}

@@ -10,8 +10,11 @@ CREATE TABLE IF NOT EXISTS systems (
   kind        TEXT NOT NULL CHECK (kind IN ('sap', 'url')),
   host        TEXT,                          -- host:port shown on URL tiles
   url         TEXT,
-  sort_order  INTEGER NOT NULL DEFAULT 100
+  sort_order  INTEGER NOT NULL DEFAULT 100,
+  parent_sid  TEXT REFERENCES systems(sid) ON DELETE SET NULL
 );
+
+ALTER TABLE systems ADD COLUMN IF NOT EXISTS parent_sid TEXT REFERENCES systems(sid) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS plans (
   id          SERIAL PRIMARY KEY,

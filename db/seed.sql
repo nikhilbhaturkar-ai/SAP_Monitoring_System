@@ -3,7 +3,7 @@
 
 INSERT INTO systems (sid, name, kind, host, url, sort_order) VALUES
   ('MSP',     'Production — MSP Client 300', 'sap', NULL, NULL, 10),
-  ('MSD',     'Development — MSD Client 100','sap', NULL, NULL, 15),
+  ('MSD',     'MSD — Client 100',            'sap', NULL, NULL, 15),
   ('MGP',     'BW / Analytics — MGP',        'sap', NULL, NULL, 20),
   ('SPA',     'Solution Manager — SPA',      'sap', NULL, NULL, 30),
   ('BIPROD',  'BI Platform',                 'url', 'mpclsapbip.mpower.com.qa:8080',
@@ -18,6 +18,20 @@ ON CONFLICT (sid) DO UPDATE
       host = EXCLUDED.host,
       url  = EXCLUDED.url,
       sort_order = EXCLUDED.sort_order;
+
+-- MSD Client 150 (Client 100 = MSD itself; no APIs yet for 150)
+INSERT INTO systems (sid, name, kind, host, url, sort_order, parent_sid) VALUES
+  ('MSD_150', 'MSD — Client 150', 'sap', 'mpcls4hdevapp.mpower.com.qa:8000', NULL, 16, 'MSD')
+ON CONFLICT (sid) DO UPDATE
+  SET name       = EXCLUDED.name,
+      kind       = EXCLUDED.kind,
+      host       = EXCLUDED.host,
+      url        = EXCLUDED.url,
+      sort_order = EXCLUDED.sort_order,
+      parent_sid = EXCLUDED.parent_sid;
+
+-- Remove stale MSD_100 row if it exists from a prior migration
+DELETE FROM systems WHERE sid = 'MSD_100';
 
 INSERT INTO checks (key, label, normal_text, is_info, is_volume, sort_order) VALUES
   ('dataVol', 'DBA Cockpit — Data Volume',   NULL,                          TRUE,  TRUE,  10),
