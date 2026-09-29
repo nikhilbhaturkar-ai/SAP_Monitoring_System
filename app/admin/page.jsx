@@ -49,16 +49,14 @@ export default function AdminPage() {
 
   // Email Notification UI state
   const [enableEmailNotifications, setEnableEmailNotifications] = useState(false);
-  const [sendCriticalAfterHours, setSendCriticalAfterHours] = useState(false);
-  const [ignoreDeduplication, setIgnoreDeduplication] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(15);
-  const [officeHoursStart, setOfficeHoursStart] = useState('09:00');
-  const [officeHoursEnd, setOfficeHoursEnd] = useState('18:00');
-  const [officeHoursTimezone, setOfficeHoursTimezone] = useState('Asia/Kolkata');
+  const [dailyEmailHour, setDailyEmailHour] = useState(8);
+  const [dailyEmailTimezone, setDailyEmailTimezone] = useState('Asia/Kolkata');
+  const [alertCheckKeys, setAlertCheckKeys] = useState([]);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState(null);
   const [testEmailSending, setTestEmailSending] = useState(false);
-  const [testEmailResult, setTestEmailResult] = useState(null); // { success, smtpConfig, error, sentTo }
+  const [testEmailResult, setTestEmailResult] = useState(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -99,12 +97,10 @@ export default function AdminPage() {
       }
       if (settingsData.success) {
         setEnableEmailNotifications(settingsData.settings.enableEmailNotifications);
-        setSendCriticalAfterHours(settingsData.settings.sendCriticalAfterHours);
-        setIgnoreDeduplication(settingsData.settings.ignoreDeduplication);
         setRefreshInterval(settingsData.settings.refreshInterval);
-        setOfficeHoursStart(settingsData.settings.officeHoursStart || '09:00');
-        setOfficeHoursEnd(settingsData.settings.officeHoursEnd || '18:00');
-        setOfficeHoursTimezone(settingsData.settings.officeHoursTimezone || 'Asia/Kolkata');
+        setDailyEmailHour(settingsData.settings.dailyEmailHour ?? 8);
+        setDailyEmailTimezone(settingsData.settings.dailyEmailTimezone || 'Asia/Kolkata');
+        setAlertCheckKeys(settingsData.settings.alertCheckKeys || []);
       }
     } catch (err) {
       console.error('Failed to load admin data:', err);
@@ -122,18 +118,16 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           enableEmailNotifications,
-          sendCriticalAfterHours,
-          ignoreDeduplication,
           refreshInterval,
-          officeHoursStart,
-          officeHoursEnd,
-          officeHoursTimezone
+          dailyEmailHour,
+          dailyEmailTimezone,
+          alertCheckKeys,
         })
       });
 
       const data = await res.json();
       if (data.success) {
-        setSettingsMsg({ type: 'success', text: 'Notification, office hours, and refresh settings saved successfully!' });
+        setSettingsMsg({ type: 'success', text: 'Settings saved successfully!' });
       } else {
         setSettingsMsg({ type: 'error', text: data.error || 'Failed to save settings.' });
       }
@@ -546,169 +540,183 @@ export default function AdminPage() {
           </div>
         )}
 
-        {activeTab === 'email' && (
-          <div className="tab-pane">
-            <div className="email-tab-header">
-              <h2>Email Notification Settings</h2>
-              <p>Configure automated email notification preferences and dashboard refresh behavior.</p>
-            </div>
+        {activeTab === 'email' && (() => {
+          const SYSTEM_KEYS = new Set([
+            'locked', 'inactive', 'highPriv', 'unassignedRoles', 'ghostRoles',
+            'unusedProfiles', 'unusedTcodes', 'undeletedUsers', 'redundantRoles', 'emptyShell',
+          ]);
+          const basisChecks  = checks.filter(c => !SYSTEM_KEYS.has(c.key) && c.key !== 'urlStatus');
+          const systemChecks = checks.filter(c =>  SYSTEM_KEYS.has(c.key));
 
-            <div className="email-settings-card">
-              {settingsMsg && (
-                <div className={`modal-msg ${settingsMsg.type}`} style={{ margin: '0 0 16px 0' }}>
-                  {settingsMsg.text}
-                </div>
-              )}
+          const toggleAlertKey = (key) => {
+            setAlertCheckKeys(prev =>
+              prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+            );
+          };
 
-              <div className="setting-item">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={enableEmailNotifications}
-                    onChange={(e) => setEnableEmailNotifications(e.target.checked)}
-                  />
-                  <span>Enable Email Notifications for Users</span>
-                </label>
-              </div>
+          const TIMEZONES = [
+            { value: 'Asia/Kolkata',      label: 'Asia/Kolkata (IST — UTC+05:30)' },
+            { value: 'UTC',               label: 'UTC (Coordinated Universal Time)' },
+            { value: 'America/New_York',  label: 'America/New_York (EST — UTC−05:00)' },
+            { value: 'America/Chicago',   label: 'America/Chicago (CST — UTC−06:00)' },
+            { value: 'America/Los_Angeles', label: 'America/Los_Angeles (PST — UTC−08:00)' },
+            { value: 'Europe/London',     label: 'Europe/London (GMT/BST)' },
+            { value: 'Europe/Berlin',     label: 'Europe/Berlin (CET — UTC+01:00)' },
+            { value: 'Asia/Singapore',    label: 'Asia/Singapore (SGT — UTC+08:00)' },
+            { value: 'Asia/Dubai',        label: 'Asia/Dubai (GST — UTC+04:00)' },
+            { value: 'Australia/Sydney',  label: 'Australia/Sydney (AEST — UTC+10:00)' },
+          ];
 
-              <div className="setting-item">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={sendCriticalAfterHours}
-                    onChange={(e) => setSendCriticalAfterHours(e.target.checked)}
-                  />
-                  <span>Send Notification for critical alerts after office hours</span>
-                </label>
-              </div>
+          return (
+  <div className="tab-pane">
+    <div className="email-tab-header">
+      <h2>Email Notification Settings</h2>
+      <p>Configure alert monitoring parameters, daily digest schedule, and dashboard refresh behaviour.</p>
+    </div>
+    <div className="email-settings-card">
+      {settingsMsg && (
+        <div className={`modal-msg ${settingsMsg.type}`} style={{ margin: '0 0 20px 0' }}>
+          {settingsMsg.text}
+        </div>
+      )}
 
-              <div className="setting-item">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={ignoreDeduplication}
-                    onChange={(e) => setIgnoreDeduplication(e.target.checked)}
-                  />
-                  <span>Ignore Deduplication Check</span>
-                </label>
-              </div>
+      {/* Top two-column row */}
+      <div className="email-top-row">
 
-              <div className="office-hours-section">
-                <h4 style={{ margin: '8px 0 4px 0', fontSize: '14px', color: '#333' }}>Office Hours Window</h4>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Start Time</label>
-                    <input
-                      type="time"
-                      value={officeHoursStart}
-                      onChange={(e) => setOfficeHoursStart(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>End Time</label>
-                    <input
-                      type="time"
-                      value={officeHoursEnd}
-                      onChange={(e) => setOfficeHoursEnd(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginTop: '8px' }}>
-                  <label>Timezone</label>
-                  <select
-                    value={officeHoursTimezone}
-                    onChange={(e) => setOfficeHoursTimezone(e.target.value)}
-                  >
-                    <option value="Asia/Kolkata">Asia/Kolkata (IST - UTC+05:30)</option>
-                    <option value="UTC">UTC (Coordinated Universal Time)</option>
-                    <option value="America/New_York">America/New_York (EST - UTC-05:00)</option>
-                    <option value="Europe/London">Europe/London (GMT/BST)</option>
-                    <option value="Europe/Berlin">Europe/Berlin (CET - UTC+01:00)</option>
-                    <option value="Asia/Singapore">Asia/Singapore (SGT - UTC+08:00)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="setting-item dropdown-item">
-                <label className="select-label">Refresh dashboard data after every n mins</label>
-                <select
-                  value={refreshInterval}
-                  onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                  className="refresh-interval-select"
-                >
-                  <option value={15}>15 mins</option>
-                  <option value={30}>30 mins</option>
-                  <option value={45}>45 mins</option>
-                  <option value={60}>60 mins</option>
-                </select>
-              </div>
-
-              <div className="smtp-test-section">
-                <h4 className="smtp-test-title">SMTP Configuration &amp; Test</h4>
-                <p className="smtp-test-desc">
-                  Verify your SMTP settings by sending a test email to your admin account
-                  {user?.email ? <strong> ({user.email})</strong> : ''}.
-                  SMTP credentials are set in the server <code>.env</code> file.
-                </p>
-
-                <div className="smtp-config-grid">
-                  <div className="smtp-config-row"><span>Host</span><code>{process.env.NEXT_PUBLIC_SMTP_HOST || 'Set via SMTP_HOST in .env'}</code></div>
-                  <div className="smtp-config-row"><span>Port</span><code>{process.env.NEXT_PUBLIC_SMTP_PORT || 'Set via SMTP_PORT in .env'}</code></div>
-                  <div className="smtp-config-row"><span>From</span><code>{process.env.NEXT_PUBLIC_SMTP_FROM || 'Set via SMTP_FROM in .env'}</code></div>
-                </div>
-
-                <button
-                  type="button"
-                  className="test-email-btn"
-                  onClick={handleTestEmail}
-                  disabled={testEmailSending}
-                >
-                  {testEmailSending ? 'Sending test email…' : '✉ Send Test Email'}
-                </button>
-
-                {testEmailResult && (
-                  <div className={`smtp-test-result ${testEmailResult.success ? 'smtp-ok' : 'smtp-fail'}`}>
-                    {testEmailResult.success ? (
-                      <>
-                        <strong>✓ Email sent successfully</strong> to <code>{testEmailResult.sentTo}</code>
-                        {testEmailResult.smtpConfig && (
-                          <div className="smtp-result-config">
-                            <span>Host: <code>{testEmailResult.smtpConfig.host}:{testEmailResult.smtpConfig.port}</code></span>
-                            <span>TLS: <code>{testEmailResult.smtpConfig.secure ? 'SSL (465)' : 'STARTTLS'}</code></span>
-                            <span>From: <code>{testEmailResult.smtpConfig.from}</code></span>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <strong>✗ Failed to send</strong>
-                        <div className="smtp-error-msg">{testEmailResult.error}</div>
-                        {testEmailResult.smtpConfig && (
-                          <div className="smtp-result-config">
-                            <span>Host tried: <code>{testEmailResult.smtpConfig.host}:{testEmailResult.smtpConfig.port}</code></span>
-                            <span>User: <code>{testEmailResult.smtpConfig.user}</code></span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="setting-actions" style={{ marginTop: '12px' }}>
-                <button
-                  type="button"
-                  className="save-btn"
-                  onClick={handleSaveSettings}
-                  disabled={savingSettings}
-                >
-                  {savingSettings ? 'Saving Settings...' : 'Save Settings'}
-                </button>
-              </div>
+        {/* Left: Daily Digest */}
+        <div className="email-section-card">
+          <div className="email-section-header">
+            <div className="email-section-icon blue">📧</div>
+            <div className="email-section-header-text">
+              <h4>Daily Email Digest</h4>
+              <p>Send one summary email per day to all users</p>
             </div>
           </div>
+          <div className="toggle-switch-row">
+            <label className="toggle-switch" htmlFor="enable-email-toggle">
+              <input id="enable-email-toggle" type="checkbox"
+                checked={enableEmailNotifications}
+                onChange={(e) => setEnableEmailNotifications(e.target.checked)} />
+              <span className="toggle-slider" />
+            </label>
+            <span className="toggle-label">{enableEmailNotifications ? 'Enabled' : 'Disabled'}</span>
+          </div>
+          <div className="digest-toggle-row">
+            <span className="digest-label">Send at</span>
+            <select className="digest-hour-select" value={dailyEmailHour}
+              onChange={(e) => setDailyEmailHour(Number(e.target.value))}
+              disabled={!enableEmailNotifications}>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
+                <option key={h} value={h}>{h}:00 a.m.</option>
+              ))}
+            </select>
+            <select className="digest-tz-select" value={dailyEmailTimezone}
+              onChange={(e) => setDailyEmailTimezone(e.target.value)}
+              disabled={!enableEmailNotifications}>
+              {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
+            </select>
+          </div>
+          <p className="digest-hint">One email per day at the selected time, filtered by each user's plan.</p>
+        </div>
+
+        {/* Right: Refresh only */}
+        <div className="email-section-card">
+          <div className="email-section-header">
+            <div className="email-section-icon green">🔄</div>
+            <div className="email-section-header-text">
+              <h4>Dashboard Refresh</h4><p>How often the collector polls SAP systems</p>
+            </div>
+          </div>
+          <div className="refresh-row">
+            <label>Refresh every</label>
+            <select className="refresh-interval-select" value={refreshInterval}
+              onChange={(e) => setRefreshInterval(Number(e.target.value))}>
+              <option value={15}>15 minutes</option>
+              <option value={30}>30 minutes</option>
+              <option value={45}>45 minutes</option>
+              <option value={60}>60 minutes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Alert Parameters full-width */}
+      <div className="email-section-card full-width">
+        <div className="email-section-header">
+          <div className="email-section-icon amber">🔔</div>
+          <div className="email-section-header-text">
+            <h4>Alert Monitoring Parameters
+              {alertCheckKeys.length > 0 && <span className="alert-selected-badge">{alertCheckKeys.length} selected</span>}
+            </h4>
+            <p>After every {refreshInterval}-min cycle, an immediate email is sent if any selected parameter is critical.</p>
+          </div>
+        </div>
+        <div className="alert-params-grid">
+          <div className="alert-param-group">
+            <h5>Basis Monitoring</h5>
+            <div className="alert-tiles-grid">
+              {basisChecks.map(c => (
+                <label key={c.key} className={`alert-tile-toggle${alertCheckKeys.includes(c.key) ? ' alert-selected' : ''}`}>
+                  <input type="checkbox" checked={alertCheckKeys.includes(c.key)} onChange={() => toggleAlertKey(c.key)} />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="alert-param-group">
+            <h5>System Monitoring</h5>
+            <div className="alert-tiles-grid">
+              {systemChecks.map(c => (
+                <label key={c.key} className={`alert-tile-toggle${alertCheckKeys.includes(c.key) ? ' alert-selected' : ''}`}>
+                  <input type="checkbox" checked={alertCheckKeys.includes(c.key)} onChange={() => toggleAlertKey(c.key)} />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SMTP Configuration */}
+      <div className="email-section-card full-width">
+        <div className="email-section-header">
+          <div className="email-section-icon purple">⚙️</div>
+          <div className="email-section-header-text">
+            <h4>SMTP Configuration</h4>
+            <p>Set via <code>.env</code> — test the connection here</p>
+          </div>
+        </div>
+        <div className="smtp-config-grid">
+          <div className="smtp-config-row"><span>Host</span><code>{process.env.NEXT_PUBLIC_SMTP_HOST || 'SMTP_HOST in .env'}</code></div>
+          <div className="smtp-config-row"><span>Port</span><code>{process.env.NEXT_PUBLIC_SMTP_PORT || 'SMTP_PORT in .env'}</code></div>
+          <div className="smtp-config-row"><span>From</span><code>{process.env.NEXT_PUBLIC_SMTP_FROM || 'SMTP_FROM in .env'}</code></div>
+        </div>
+        <div>
+          <button type="button" className="test-email-btn" onClick={handleTestEmail} disabled={testEmailSending}>
+            {testEmailSending ? 'Sending…' : '✉ Send Test Email'}
+          </button>
+          {user?.email && <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 10 }}>→ {user.email}</span>}
+        </div>
+        {testEmailResult && (
+          <div className={`smtp-test-result ${testEmailResult.success ? 'smtp-ok' : 'smtp-fail'}`}>
+            {testEmailResult.success
+              ? <><strong>✓ Sent</strong> to <code>{testEmailResult.sentTo}</code></>
+              : <><strong>✗ Failed</strong><div className="smtp-error-msg">{testEmailResult.error}</div></>}
+          </div>
         )}
+      </div>
+
+      {/* Save bar */}
+      <div className="email-save-bar">
+        <button type="button" className="save-btn-primary" onClick={handleSaveSettings} disabled={savingSettings}>
+          {savingSettings ? 'Saving…' : 'Save Settings'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+        })()}
         {activeTab === 'company' && (
           <div className="tab-pane">
             <div className="email-tab-header">
