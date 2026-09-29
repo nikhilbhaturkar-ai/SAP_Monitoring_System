@@ -14,6 +14,7 @@ import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 import { DashboardChat } from './DashboardChat.jsx';
 import { SystemMonitoring } from './SystemMonitoring.jsx';
 import { ExportButtons } from './ExportButtons.jsx';
+import { ReportingPanel } from './ReportingPanel.jsx';
 
 const DEFAULT_LOGO = '/mpower-logo.png';
 
@@ -485,6 +486,15 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               >
                 History log
               </button>
+              <button
+                type="button"
+                role="tab"
+                className="tab"
+                aria-selected={view === 'reporting'}
+                onClick={() => setView('reporting')}
+              >
+                Reporting
+              </button>
             </div>
 
             <div className="view-right-controls">
@@ -493,7 +503,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 type="button"
                 className={`view-toggle-btn ${layoutMode === 'tiles' ? 'active' : ''}`}
                 onClick={() => {
-                  if (view === 'history') setView('snapshot');
+                  if (view === 'history' || view === 'reporting') setView('snapshot');
                   setLayoutMode('tiles');
                 }}
                 title="Tile View (Grid)"
@@ -509,7 +519,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 type="button"
                 className={`view-toggle-btn ${layoutMode === 'list' ? 'active' : ''}`}
                 onClick={() => {
-                  if (view === 'history') setView('snapshot');
+                  if (view === 'history' || view === 'reporting') setView('snapshot');
                   setLayoutMode('list');
                 }}
                 title="List View (Table)"
@@ -552,8 +562,10 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 layoutMode={layoutMode}
                 priorityFilter={priorityFilter}
               />
-            ) : (
+            ) : view === 'history' ? (
               <HistoryTable rows={history} sid={card.sid} />
+            ) : (
+              <ReportingPanel sid={card.sid} />
             )}
           </div>
 
