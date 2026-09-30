@@ -12,11 +12,17 @@ export async function GET() {
     // Fetch plan tiles mapping
     const { rows: planTiles } = await pool.query('SELECT * FROM plan_tiles');
 
+    // Fetch SAP systems for user assignment UI
+    const { rows: systems } = await pool.query(
+      "SELECT sid, name, parent_sid FROM systems WHERE kind = 'sap' ORDER BY sort_order"
+    );
+
     return NextResponse.json({
       success: true,
       plans,
       checks,
-      planTiles
+      planTiles,
+      systems,
     });
   } catch (error) {
     console.error('Failed to fetch config:', error);
