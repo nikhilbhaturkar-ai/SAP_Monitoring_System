@@ -118,7 +118,10 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
   const visibleSystems = isAllSystems
     ? (dashboard?.systems || [])
-    : (dashboard?.systems || []).filter(sys => userAssignedSystems.includes(sys.sid));
+    : (dashboard?.systems || []).filter(sys =>
+        userAssignedSystems.includes(sys.sid) ||
+        (sys.parent_sid && userAssignedSystems.includes(sys.parent_sid))
+      );
 
   useEffect(() => {
     if (visibleSystems.length > 0 && !visibleSystems.some(sys => sys.sid === sid)) {

@@ -24,6 +24,7 @@ export default function AdminPage() {
   const [plans, setPlans] = useState([]);
   const [checks, setChecks] = useState([]);
   const [planTiles, setPlanTiles] = useState([]);
+  const [sapSystems, setSapSystems] = useState([]);
   const [users, setUsers] = useState([]);
 
   const [activeTab, setActiveTab] = useState('tiles');
@@ -88,6 +89,7 @@ export default function AdminPage() {
         setPlans(configData.plans);
         setChecks(configData.checks);
         setPlanTiles(configData.planTiles);
+        setSapSystems(configData.systems || []);
         if (configData.plans.length > 0) {
           setSelectedPlanId(configData.plans[0].id);
         }
@@ -279,9 +281,9 @@ export default function AdminPage() {
         current.push(sys);
       }
 
-      // If no system checked or all 4 systems checked (MSD, MSP, MGP, SPA), revert to ALL
-      const allFour = ['MSD', 'MSP', 'MGP', 'SPA'];
-      if (current.length === 0 || allFour.every(s => current.includes(s))) {
+      // If nothing checked, or every SAP system is checked, collapse back to ALL
+      const allSids = sapSystems.map(s => s.sid);
+      if (current.length === 0 || (allSids.length > 0 && allSids.every(s => current.includes(s)))) {
         current = ['ALL'];
       }
       return { ...prev, assignedSystems: current };
@@ -896,16 +898,18 @@ export default function AdminPage() {
                     />
                     <span>All Systems</span>
                   </label>
-                  {['MSD', 'MSP', 'MGP', 'SPA'].map(sys => {
-                    const isChecked = !formData.assignedSystems?.includes('ALL') && formData.assignedSystems?.includes(sys);
+                  {sapSystems.map(s => {
+                    const isChecked = !formData.assignedSystems?.includes('ALL') && formData.assignedSystems?.includes(s.sid);
                     return (
-                      <label key={sys} className="checkbox-label inline-checkbox">
+                      <label key={s.sid} className="checkbox-label inline-checkbox">
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => handleSystemToggle(sys)}
+                          onChange={() => handleSystemToggle(s.sid)}
                         />
-                        <span>{sys}</span>
+                        <span style={s.parent_sid ? { paddingLeft: 12 } : {}}>
+                          {s.parent_sid ? '↳ ' : ''}{s.name}
+                        </span>
                       </label>
                     );
                   })}
