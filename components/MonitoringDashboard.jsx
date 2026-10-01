@@ -616,7 +616,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
                 <strong style={{ fontSize: '1.1rem' }}>No monitoring data yet for {card.name}</strong>
                 <p style={{ marginTop: 8, color: 'var(--color-text-muted, #888)' }}>
-                  Run <code>npm run import</code> to load historical data, or configure SAP API endpoints so the collector can start polling this system.
+                  Configure SAP API endpoints so the collector can start polling this system.
                 </p>
               </div>
             ) : view === 'snapshot' ? (

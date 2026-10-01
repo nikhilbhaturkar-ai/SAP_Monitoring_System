@@ -9,14 +9,17 @@
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d",
     "migrate": "node scripts/migrate.js",
-    "import": "node scripts/import-excel.js",
     "collect": "node scripts/collect.js",
     "worker": "node scripts/worker.js",
-    "setup": "npm run db:up && npm run migrate && npm run import",
+    "setup": "npm run db:up && npm run migrate",
     "dev": "concurrently -n web,worker,batch -c magenta,yellow,green \"next dev\" \"npm run worker\" \"npm run dev:batch-backend\"",
     "dev:web": "next dev",
     "dev:batch-backend": "cd batch-monitor-backend && .venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000",
-    "build": "next build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:py": "cd batch-monitor-backend && .venv\\Scripts\\python.exe -m pytest tests/ -v",
+    "test:all": "npm run test && npm run test:py",
+    "build": "npm run test:all && next build",
     "start": "next start"
   },
   "dependencies": {
@@ -35,6 +38,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "concurrently": "^9.1.2",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^2.1.9"
   }
 }
