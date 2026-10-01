@@ -91,7 +91,8 @@ def get_chat_response(messages: list[dict], context: dict) -> str:
         context_block = ""
 
     system_prompt = f"""You are a helpful SAP Monitoring Dashboard AI Assistant.
-Answer the user's question concisely and accurately. Format responses in Markdown.{context_block}"""
+Answer the user's question concisely and accurately. Format responses in Markdown.{context_block}
+Do not answer questions other than SAP or SAP Dashboard."""
 
     # Convert the messages into LangChain message objects (limit history to last 10 messages)
     lc_messages = [SystemMessage(content=system_prompt)]
