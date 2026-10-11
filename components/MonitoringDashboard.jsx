@@ -13,6 +13,7 @@ import { useAuth } from './auth/AuthContext.jsx';
 import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 import { DashboardChat } from './DashboardChat.jsx';
 import { SystemMonitoring } from './SystemMonitoring.jsx';
+import { IDocMonitoring } from './IDocMonitoring.jsx';
 import { ExportButtons } from './ExportButtons.jsx';
 import { ReportingPanel } from './ReportingPanel.jsx';
 
@@ -83,6 +84,15 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
 
   // Auto-refresh interval from admin settings (in minutes)
   const [refreshIntervalMins, setRefreshIntervalMins] = useState(15);
+
+  // When the user switches to a system that doesn't have the IDoc tab, reset
+  // back to the default snapshot view so they don't land on a blank page.
+  const IDOC_SIDS = ['MSD', 'MSD_150'];
+  useEffect(() => {
+    if (view === 'idoc' && !IDOC_SIDS.includes(sid)) {
+      setView('snapshot');
+    }
+  }, [sid]);
 
   useEffect(() => {
     fetch('/api/company-logo')
@@ -545,6 +555,17 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               >
                 System Monitoring
               </button>
+              {['MSD', 'MSD_150'].includes(sid) && (
+                <button
+                  type="button"
+                  role="tab"
+                  className="tab"
+                  aria-selected={view === 'idoc'}
+                  onClick={() => setView('idoc')}
+                >
+                  IDoc Monitoring
+                </button>
+              )}
               <button
                 type="button"
                 role="tab"
@@ -638,6 +659,8 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 layoutMode={layoutMode}
                 priorityFilter={priorityFilter}
               />
+            ) : view === 'idoc' ? (
+              <IDocMonitoring sid={card.sid} layoutMode={layoutMode} />
             ) : view === 'history' ? (
               <HistoryTable rows={history} sid={card.sid} />
             ) : (
