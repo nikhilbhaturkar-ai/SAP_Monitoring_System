@@ -14,6 +14,7 @@ import { paramTile, volumeTile, endpointTile } from '../lib/tiles.js';
 import { DashboardChat } from './DashboardChat.jsx';
 import { SystemMonitoring } from './SystemMonitoring.jsx';
 import { IDocMonitoring } from './IDocMonitoring.jsx';
+import { Dashboard as BatchMonitoringDashboard } from './batch/Dashboard.tsx';
 import { ExportButtons } from './ExportButtons.jsx';
 import { ReportingPanel } from './ReportingPanel.jsx';
 
@@ -570,6 +571,15 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 type="button"
                 role="tab"
                 className="tab"
+                aria-selected={view === 'batch'}
+                onClick={() => setView('batch')}
+              >
+                Batch Monitoring
+              </button>
+              <button
+                type="button"
+                role="tab"
+                className="tab"
                 aria-selected={view === 'history'}
                 onClick={() => setView('history')}
               >
@@ -592,7 +602,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 type="button"
                 className={`view-toggle-btn ${layoutMode === 'tiles' ? 'active' : ''}`}
                 onClick={() => {
-                  if (view === 'history' || view === 'reporting') setView('snapshot');
+                  if (view === 'history' || view === 'reporting' || view === 'batch') setView('snapshot');
                   setLayoutMode('tiles');
                 }}
                 title="Tile View (Grid)"
@@ -608,7 +618,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                 type="button"
                 className={`view-toggle-btn ${layoutMode === 'list' ? 'active' : ''}`}
                 onClick={() => {
-                  if (view === 'history' || view === 'reporting') setView('snapshot');
+                  if (view === 'history' || view === 'reporting' || view === 'batch') setView('snapshot');
                   setLayoutMode('list');
                 }}
                 title="List View (Table)"
@@ -661,6 +671,8 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               />
             ) : view === 'idoc' ? (
               <IDocMonitoring sid={card.sid} layoutMode={layoutMode} />
+            ) : view === 'batch' ? (
+              <BatchMonitoringDashboard />
             ) : view === 'history' ? (
               <HistoryTable rows={history} sid={card.sid} />
             ) : (

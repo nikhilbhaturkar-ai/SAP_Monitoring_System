@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StatusChip, StatusDot } from './StatusChip.jsx';
 
 const NUMERIC_RE = /^\d+$/;
@@ -316,8 +316,17 @@ const DETAIL_TABLE_SPECS = {
  * keeps pointing at the real transaction for those instead of inventing
  * fields.
  */
+const DELETE_ROLE_URL = '/api/role-delete';
+const UNUSED_ROLES_URL = '/api/unused-roles';
+const DELETE_USER_URL = '/api/user-delete';
+
 export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose }) {
   const ref = useRef(null);
+  const [deleteStatus, setDeleteStatus] = useState({});
+  const [deleteResponses, setDeleteResponses] = useState([]);
+  const [liveDetailRows, setLiveDetailRows] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [userConfirm, setUserConfirm] = useState(null); // { userName } | null
 
   useEffect(() => {
     const node = ref.current;
@@ -346,7 +355,9 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
 
   const detail = tile.detail ?? {};
   const readings = detail.readings ?? [];
-  const detailRows = detail.detailRows ?? null;
+  const rawDetailRows = detail.detailRows ?? null;
+  // liveDetailRows is set after a delete refresh; fall back to the prop data
+  const detailRows = liveDetailRows ?? rawDetailRows;
   const tableSpec = DETAIL_TABLE_SPECS[tile.key] ?? null;
   const hasDetailTable = tableSpec && detailRows && detailRows.length > 0;
   // Some checks (sm51) open their dialog as reference information on a
@@ -356,6 +367,121 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
   const severity = tile.severity === 'critical' ? 'critical' : 'warning';
   const normalTextIsCount = detail.normalText != null && NUMERIC_RE.test(String(detail.normalText));
   const isJobsCheck = ROW_LIST_CHECKS.has(tile.key);
+
+  const refreshUnassignedRoles = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(UNUSED_ROLES_URL);
+      if (res.ok) {
+        const data = await res.json();
+        // SAP returns an array of objects; normalise to { roleName } shape
+        const rows = Array.isArray(data)
+          ? data.map((item) => ({
+              roleName: item.AGR_NAME ?? item.agr_name ?? item.roleName ?? item.ROLE_NAME ?? String(item),
+            }))
+          : [];
+        setLiveDetailRows(rows);
+      }
+    } catch {
+      // silently ignore refresh failures — the existing list stays visible
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleDeleteRole = async (roleName) => {
+    setDeleteStatus((prev) => ({ ...prev, [roleName]: 'pending' }));
+    try {
+      const res = await fetch(DELETE_ROLE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ROLE_NAME: roleName }),
+      });
+      const text = await res.text();
+      let display;
+      try {
+        const j = JSON.parse(text);
+        display = typeof j === 'object' ? JSON.stringify(j, null, 2) : String(j);
+      } catch {
+        // Strip HTML tags and collapse whitespace for readable plain text
+        display = text
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&copy;/gi, '©')
+          .replace(/&[a-z]+;/gi, ' ')   // drop any remaining named entities
+          .replace(/©.*?(rights reserved\.?|$)/i, '') // strip SAP copyright notice
+          .replace(/\s+/g, ' ')
+          .trim() || '(empty response)';
+      }
+      const success = res.ok;
+      setDeleteStatus((prev) => ({ ...prev, [roleName]: success ? 'done' : 'error' }));
+      setDeleteResponses((prev) => [
+        { roleName, success, status: res.status, body: display, at: new Date().toLocaleTimeString() },
+        ...prev,
+      ]);
+      // Refresh the roles list from SAP after every delete attempt
+      await refreshUnassignedRoles();
+    } catch (err) {
+      setDeleteStatus((prev) => ({ ...prev, [roleName]: 'error' }));
+      setDeleteResponses((prev) => [
+        { roleName, success: false, status: null, body: err.message, at: new Date().toLocaleTimeString() },
+        ...prev,
+      ]);
+    }
+  };
+
+  const handleDeleteUser = async (userName) => {
+    setUserConfirm(null);
+    setDeleteStatus((prev) => ({ ...prev, [userName]: 'pending' }));
+    try {
+      const res = await fetch(DELETE_USER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: userName }),
+      });
+      const text = await res.text();
+      let display;
+      try {
+        const j = JSON.parse(text);
+        display = typeof j === 'object' ? JSON.stringify(j, null, 2) : String(j);
+      } catch {
+        display = text
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&copy;/gi, '©')
+          .replace(/&[a-z]+;/gi, ' ')
+          .replace(/©.*?(rights reserved\.?|$)/i, '')
+          .replace(/\s+/g, ' ')
+          .trim() || '(empty response)';
+      }
+      const success = res.ok;
+      setDeleteStatus((prev) => ({ ...prev, [userName]: success ? 'done' : 'error' }));
+      setDeleteResponses((prev) => [
+        { roleName: userName, success, status: res.status, body: display, at: new Date().toLocaleTimeString() },
+        ...prev,
+      ]);
+    } catch (err) {
+      setDeleteStatus((prev) => ({ ...prev, [userName]: 'error' }));
+      setDeleteResponses((prev) => [
+        { roleName: userName, success: false, status: null, body: err.message, at: new Date().toLocaleTimeString() },
+        ...prev,
+      ]);
+    }
+  };
 
   // Clicking the backdrop lands on the dialog element itself, never on its
   // contents, which is what separates "outside" from "inside" here. It routes
@@ -451,7 +577,12 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
 
       {hasDetailTable && (
         <section className="detail-section">
-          <h3 className="detail-subhead">{tableSpec.heading(detailRows.length)}</h3>
+          <h3 className="detail-subhead">
+            {tableSpec.heading(detailRows.length)}
+            {tile.key === 'unassignedRoles' && isRefreshing && (
+              <span className="role-list-refreshing"> refreshing…</span>
+            )}
+          </h3>
           <div className="table-scroll">
             <table className="data-table">
               <caption className="visually-hidden">{tableSpec.caption(sid)}</caption>
@@ -462,6 +593,9 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
                       {col}
                     </th>
                   ))}
+                  {(tile.key === 'unassignedRoles' || tile.key === 'locked') && (
+                    <th scope="col" className="detail-actions-col">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -473,10 +607,62 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
                       // eslint-disable-next-line react/no-array-index-key
                       <td key={j}>{cell}</td>
                     ))}
+                    {tile.key === 'unassignedRoles' && (
+                      <td className="detail-actions-col">
+                        {deleteStatus[row.roleName] === 'done' ? (
+                          <span className="role-delete-done">Deleted</span>
+                        ) : deleteStatus[row.roleName] === 'error' ? (
+                          <span className="role-delete-error">Failed</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="role-delete-btn"
+                            disabled={deleteStatus[row.roleName] === 'pending'}
+                            onClick={() => handleDeleteRole(row.roleName)}
+                          >
+                            {deleteStatus[row.roleName] === 'pending' ? '…' : 'Delete'}
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    {tile.key === 'locked' && (
+                      <td className="detail-actions-col">
+                        {deleteStatus[row.userName] === 'done' ? (
+                          <span className="role-delete-done">Deleted</span>
+                        ) : deleteStatus[row.userName] === 'error' ? (
+                          <span className="role-delete-error">Failed</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="role-delete-btn"
+                            disabled={deleteStatus[row.userName] === 'pending'}
+                            onClick={() => setUserConfirm({ userName: row.userName })}
+                          >
+                            {deleteStatus[row.userName] === 'pending' ? '…' : 'Delete'}
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+      )}
+
+      {deleteResponses.length > 0 && (
+        <section className="detail-section">
+          <h3 className="detail-subhead">Deletion responses</h3>
+          <div className="delete-response-log">
+            {deleteResponses.map((entry, i) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <div key={i} className={`delete-response-entry ${entry.success ? 'delete-response-ok' : 'delete-response-err'}`}>
+                <span className="delete-response-role">{entry.roleName}</span>
+                <span className="delete-response-time">{entry.at}{entry.status != null ? ` · HTTP ${entry.status}` : ''}</span>
+                <pre className="delete-response-body">{entry.body}</pre>
+              </div>
+            ))}
           </div>
         </section>
       )}
@@ -523,6 +709,33 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
             'log.'}{' '}
         For the full detail, open <strong>{tile.label.split(' ')[0]}</strong> in {sid}.
       </p>
+
+      {userConfirm && (
+        <div className="user-delete-confirm-overlay" role="alertdialog" aria-modal="true" aria-labelledby="user-confirm-title">
+          <div className="user-delete-confirm-box">
+            <h4 className="user-delete-confirm-title" id="user-confirm-title">Confirm User Deletion</h4>
+            <p className="user-delete-confirm-msg">
+              Delete user <strong>{userConfirm.userName}</strong>? This action cannot be undone.
+            </p>
+            <div className="user-delete-confirm-actions">
+              <button
+                type="button"
+                className="role-delete-btn"
+                onClick={() => handleDeleteUser(userConfirm.userName)}
+              >
+                Yes, Delete
+              </button>
+              <button
+                type="button"
+                className="user-delete-cancel-btn"
+                onClick={() => setUserConfirm(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </dialog>
   );
 }
