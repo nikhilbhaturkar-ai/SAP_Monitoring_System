@@ -79,11 +79,14 @@ export async function fetchSapBatchJobs(date?: string): Promise<JobRecord[]> {
   return rows.map((r, i) => mapSapJob(r as Record<string, unknown>, i));
 }
 
-export async function createInvestigation(runDate: string): Promise<{ investigation_id: string }> {
+export async function createInvestigation(
+  runDate: string,
+  jobs?: JobRecord[],
+): Promise<{ investigation_id: string }> {
   const resp = await fetch(`${API_BASE}/investigations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ run_date: runDate }),
+    body: JSON.stringify({ run_date: runDate, failed_jobs: jobs ?? [] }),
   });
   if (!resp.ok) throw new Error(`Failed to start investigation: ${resp.status}`);
   return resp.json();

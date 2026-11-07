@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { config } from '../../../../lib/server/config.js';
 
+export const dynamic = 'force-dynamic';
+
 // Only these two SIDs expose the IDoc monitoring endpoint, each on its own
 // SAP client number baked into the Z-service path.
 const IDOC_PATH = {

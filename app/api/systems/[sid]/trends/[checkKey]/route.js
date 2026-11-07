@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { buildTrend } from '../../../../../../lib/server/services/dashboard.js';
 import { windowDaysFrom } from '../../../../_util.js';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request, { params }) {
   try {
     const { sid, checkKey } = await params;
