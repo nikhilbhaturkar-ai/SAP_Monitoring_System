@@ -17,6 +17,7 @@ import { IDocMonitoring } from './IDocMonitoring.jsx';
 import { Dashboard as BatchMonitoringDashboard } from './batch/Dashboard.tsx';
 import { ExportButtons } from './ExportButtons.jsx';
 import { ReportingPanel } from './ReportingPanel.jsx';
+import { HelpCentre } from './HelpCentre.jsx';
 
 const DEFAULT_LOGO = '/mpower-logo.png';
 
@@ -29,6 +30,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [openTile, setOpenTile] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [expandedParents, setExpandedParents] = useState(new Set(['MSD']));
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuTriggerRef = useRef(null);
@@ -321,9 +323,9 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                     <button
                       key={system.sid}
                       type="button"
-                      className={`sidebar-nav-item ${isSelected ? 'active' : ''} ${isChild ? 'sidebar-nav-child' : ''}`}
-                      onClick={() => setSid(system.sid)}
-                      aria-current={isSelected ? 'page' : undefined}
+                      className={`sidebar-nav-item ${isSelected && !helpOpen ? 'active' : ''} ${isChild ? 'sidebar-nav-child' : ''}`}
+                      onClick={() => { setSid(system.sid); setHelpOpen(false); }}
+                      aria-current={isSelected && !helpOpen ? 'page' : undefined}
                       title={sidebarCollapsed ? `${system.sid}${hasAlerts ? ` — ${alertCount} alerts` : ''}` : undefined}
                     >
                       <span
@@ -410,7 +412,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
                   id="mobile-sid-select"
                   className="mobile-select-dropdown"
                   value={sid}
-                  onChange={(e) => setSid(e.target.value)}
+                  onChange={(e) => { setSid(e.target.value); setHelpOpen(false); }}
                   aria-label="Select SAP System"
                 >
                   {visibleSystems.map((system) => {
@@ -433,10 +435,40 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               </div>
             </div>
           </div>
+
+          {/* Help Centre */}
+          <div className="sidebar-help">
+            {!sidebarCollapsed && <div className="sidebar-section-title">Support</div>}
+            <button
+              type="button"
+              className={`sidebar-nav-item sidebar-help-item ${helpOpen ? 'active' : ''}`}
+              onClick={() => setHelpOpen(true)}
+              aria-current={helpOpen ? 'page' : undefined}
+              title={sidebarCollapsed ? 'Help Centre' : undefined}
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true" style={{ flexShrink: 0 }}>
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061 3 3 0 112.871 5.026v.345a.75.75 0 01-1.5 0v-.5c0-.72.57-1.172 1.081-1.287A1.5 1.5 0 108.94 6.94zM10 15a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+              <div className="nav-item-content">
+                <div className="nav-item-sid">{sidebarCollapsed ? 'Help' : 'Help Centre'}</div>
+              </div>
+            </button>
+          </div>
         </aside>
 
         {/* 3. CONTENTS SECTION */}
         <main className="main-content">
+          {helpOpen ? (
+            <>
+              <nav className="breadcrumb" aria-label="Breadcrumb">
+                <span>Home</span>
+                <span aria-hidden="true">/</span>
+                <span className="breadcrumb-current">Help Centre</span>
+              </nav>
+              <HelpCentre />
+            </>
+          ) : (
+          <>
           {/* Scope bar */}
           <div className="scopebar">
             <label className="scope-chip">
@@ -695,6 +727,8 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
               runLabel={dashboard.noData ? dashboard.latestRun.label : `${dashboard.latestRun.label}, ${new Date(dashboard.generatedAt).toLocaleTimeString('en-GB')}`}
               onClose={() => setOpenTile(null)}
             />
+          )}
+          </>
           )}
 
           <footer className="dashboard-footer">
