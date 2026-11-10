@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS checks (
 CREATE TABLE IF NOT EXISTS monitoring_runs (
   id        SERIAL PRIMARY KEY,
   run_date  DATE NOT NULL UNIQUE,
-  source    TEXT NOT NULL DEFAULT 'excel',
+  source    TEXT NOT NULL DEFAULT 'sap-api',
   imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -97,15 +97,9 @@ CREATE INDEX IF NOT EXISTS collector_runs_started_idx
   ON collector_runs (started_at DESC);
 
 -- ---------------------------------------------------------------------------
--- Migration: one run per day → many runs per day.
---
--- The Excel importer wrote a single row per calendar day; the SAP collector
--- polls every 15 minutes. These statements are idempotent so `npm run migrate`
--- stays re-runnable against both fresh and existing databases.
+-- Migration: ensure run_at column exists (idempotent for existing databases).
 -- ---------------------------------------------------------------------------
 ALTER TABLE monitoring_runs ADD COLUMN IF NOT EXISTS run_at TIMESTAMPTZ;
--- Backfill legacy Excel rows to midnight so any same-day collector run sorts
--- after them and wins as the day's latest.
 UPDATE monitoring_runs SET run_at = run_date::timestamptz WHERE run_at IS NULL;
 ALTER TABLE monitoring_runs ALTER COLUMN run_at SET NOT NULL;
 ALTER TABLE monitoring_runs ALTER COLUMN run_at SET DEFAULT now();

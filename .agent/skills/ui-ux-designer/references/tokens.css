@@ -1,0 +1,157 @@
+/*
+ * House design-token starter, lifted from the SAP Monitoring System's
+ * app/monitoring.css. Copy this block into a new project and re-tune the
+ * hex values to that project's brand — keep the VARIABLE NAMES and the
+ * light/dark structure, because components should reference roles
+ * (--surface-1, --status-good) never raw colors, so a re-theme is a
+ * find-and-replace in one file instead of a hunt through every component.
+ *
+ * Why two dark-mode blocks: the @media query follows the OS/browser
+ * preference automatically; the :root[data-theme='dark'] block lets a
+ * user-facing toggle override that preference explicitly. Keep both if the
+ * new project wants a manual theme switch, drop the attribute block if it
+ * only ever follows the system setting.
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces: layered from page background up to the topmost card. */
+  --surface-1: #ffffff;
+  --surface-2: #f4f4f0;
+  --surface-3: #e7e5e4;
+  --surface-glass: rgba(255, 255, 255, 0.9);
+  --page: #fbfbf9;
+  --page-bg: radial-gradient(circle at 50% 0%, #f4f4f0 0%, #fbfbf9 50%, #f5f5f0 100%);
+
+  /* Text: three weights, never pure black/gray so it stays warm. */
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+  --text-muted: #78716c;
+
+  /* Structure: gridlines, borders, baselines for charts and tables. */
+  --gridline: #e7e5e4;
+  --baseline: #d6d3d1;
+  --border: #e7e5e4;
+  --border-strong: #d6d3d1;
+  --border-glass: rgba(231, 229, 228, 0.6);
+
+  /* One categorical accent for charts/highlights. Add --series-2, -3, ... as
+     needed, but never reuse a --status-* color as a data-series color —
+     status hues are reserved so "critical-colored" always means critical. */
+  --series-1: #0ea5e9;
+  --series-1-wash: rgba(14, 165, 233, 0.08);
+
+  /* Status roles: exactly these five severities, reused everywhere. Pick
+     hues with reliable relative ordering for colorblind users (this ramp —
+     green/amber/orange/red — holds up under deuteranopia simulation). */
+  --status-good: #16a34a;
+  --status-warning: #d97706;
+  --status-serious: #ea580c;
+  --status-critical: #e11d48;
+  --status-unknown: #78716c;
+  --success-text: #16a34a;
+
+  /* Shape and elevation. */
+  --radius-card: 16px;
+  --radius-inner: 12px;
+  --radius-pill: 9999px;
+  --shadow-card: 0 4px 20px rgba(28, 25, 23, 0.04), 0 1px 3px rgba(28, 25, 23, 0.02);
+  --shadow-card-hover: 0 14px 32px rgba(28, 25, 23, 0.1), 0 4px 12px rgba(28, 25, 23, 0.05);
+  --shadow-pop: 0 24px 48px -12px rgba(28, 25, 23, 0.2);
+  --accent-gradient: linear-gradient(135deg, #0284c7, #0ea5e9);
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+
+    --surface-1: #1e293b;
+    --surface-2: #0f172a;
+    --surface-3: #182234;
+    --surface-glass: rgba(30, 41, 59, 0.75);
+    --page: #0b0f19;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+
+    --gridline: rgba(255, 255, 255, 0.08);
+    --baseline: rgba(255, 255, 255, 0.16);
+    --border: rgba(255, 255, 255, 0.12);
+    --border-strong: rgba(255, 255, 255, 0.22);
+    --border-glass: rgba(255, 255, 255, 0.15);
+
+    --series-1: #38bdf8;
+    --series-1-wash: rgba(56, 189, 248, 0.15);
+
+    --status-good: #34d399;
+    --status-warning: #fbbf24;
+    --status-serious: #fb923c;
+    --status-critical: #f87171;
+    --status-unknown: #94a3b8;
+    --success-text: #34d399;
+
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --shadow-card-hover: 0 14px 32px rgba(0, 0, 0, 0.45);
+    --shadow-pop: 0 24px 48px -12px rgba(0, 0, 0, 0.7);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --surface-1: #1e293b;
+  --surface-2: #0f172a;
+  --surface-3: #182234;
+  --surface-glass: rgba(30, 41, 59, 0.75);
+  --page: #0b0f19;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --gridline: rgba(255, 255, 255, 0.08);
+  --baseline: rgba(255, 255, 255, 0.16);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.22);
+  --border-glass: rgba(255, 255, 255, 0.15);
+  --series-1: #38bdf8;
+  --series-1-wash: rgba(56, 189, 248, 0.15);
+  --status-good: #34d399;
+  --status-warning: #fbbf24;
+  --status-serious: #fb923c;
+  --status-critical: #f87171;
+  --status-unknown: #94a3b8;
+  --success-text: #34d399;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 14px 32px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 24px 48px -12px rgba(0, 0, 0, 0.7);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  background-image: var(--page-bg);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Page shell: centers content, caps line length on wide monitors. */
+.shell {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 40px 40px 100px;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 24px 16px 64px;
+  }
+}

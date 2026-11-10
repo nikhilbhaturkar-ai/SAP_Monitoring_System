@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import * as repo from '../../../lib/server/repositories/monitoring.js';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     return NextResponse.json(await repo.listChecks());

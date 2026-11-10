@@ -39,6 +39,7 @@ class NotifyResult(BaseModel):
 
 class CreateInvestigationRequest(BaseModel):
     run_date: str
+    failed_jobs: list[JobRecord] = []
 
 
 class NotifyRequest(BaseModel):

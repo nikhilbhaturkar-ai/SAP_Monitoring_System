@@ -6,13 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm install          # single root install — one Next.js app, no workspaces
-npm run setup        # db:up + migrate + import — full cold start
+npm run setup        # db:up + migrate — full cold start
 npm run dev          # concurrently: Next.js dev server :3000, collector worker, batch backend :8000
 
 npm run db:up        # docker compose up -d   (Postgres 16 on host port 5433)
 npm run db:reset     # drop the volume and start clean
 npm run migrate      # re-applies db/schema.sql then db/seed.sql (idempotent)
-npm run import       # ETL the .xlsx into Postgres (idempotent)
 npm run collect      # one-shot SAP collection cycle
 npm run worker       # cron scheduler: collect on boot, then every 15 min
 npm run build        # next build — production build of the whole app
@@ -26,11 +25,9 @@ npm run start        # next start — serve the production build
 A single Next.js (App Router) application at the repo root — Node.js ESM throughout (`"type": "module"`), no ORM, raw SQL through the `pg` pool. Two other processes still run alongside it and share the same database / API surface:
 
 ```
-ERP Monitoring Log.xlsx ──> scripts/import-excel.js ─┐
-                                                     ├─> lib/server/repositories/ingest.js ──> Postgres
-SAP APIs (placeholder) ──> lib/server/services/collector.js ─┘                                    │
-                              ▲ scripts/worker.js (node-cron, */15)                                │
-                                                                                                    ▼
+SAP APIs ──> lib/server/services/collector.js ──> lib/server/repositories/ingest.js ──> Postgres
+                ▲ scripts/worker.js (every N mins, configurable)                              │
+                                                                                               ▼
         app/ (React, App Router) <── app/api/**/route.js <── lib/server/services/ <── lib/server/repositories/monitoring.js
 
 batch-monitor-backend/ (Python/FastAPI, separate process, port 8000)
@@ -38,11 +35,11 @@ batch-monitor-backend/ (Python/FastAPI, separate process, port 8000)
         └── reverse-proxied by app/api/batch/[...path]/route.js (SSE-safe passthrough)
 ```
 
-Route Handlers (`app/api/**/route.js`) replace the old Express routes one-for-one; `lib/server/{config.js,db.js,repositories,services,lib,sap}` is a near-verbatim port of the former `server/src/**` — same SQL, same business logic, just re-homed so both the Next.js request path and the standalone `scripts/*.js` (migrate/import/collect/worker) can import it directly.
+Route Handlers (`app/api/**/route.js`) serve the Next.js request path; `lib/server/{config.js,db.js,repositories,services,lib,sap}` is shared by both the Next.js request path and the standalone `scripts/*.js` (migrate/collect/worker).
 
 ### The `daily_runs` invariant
 
-`monitoring_runs` holds **one row per collection**, not per day: the Excel importer writes midnight of the run date, the collector writes the actual poll time (up to 96 rows/day). Every read path must go through the `daily_runs` view, which returns the newest *populated* run of each calendar day.
+`monitoring_runs` holds **one row per collection**, not per day: the collector writes the actual poll time (up to 96 rows/day). Every read path must go through the `daily_runs` view, which returns the newest *populated* run of each calendar day.
 
 Querying `monitoring_runs` directly from a dashboard query is a bug. It breaks in four separate ways: `LIMIT n` windows collapse from n days to a few hours, `GROUP BY run_date` multiplies anomaly counts by the number of daily cycles, `run_date = max(run_date)` fans endpoint tiles out into duplicates, and run-date lists repeat.
 
