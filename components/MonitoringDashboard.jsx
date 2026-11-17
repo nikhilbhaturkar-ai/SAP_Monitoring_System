@@ -704,7 +704,7 @@ export default function MonitoringDashboard({ appSwitcher = null }) {
             ) : view === 'idoc' ? (
               <IDocMonitoring sid={card.sid} layoutMode={layoutMode} />
             ) : view === 'batch' ? (
-              <BatchMonitoringDashboard />
+              <BatchMonitoringDashboard system={card} />
             ) : view === 'history' ? (
               <HistoryTable rows={history} sid={card.sid} />
             ) : (

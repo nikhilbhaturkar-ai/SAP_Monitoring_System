@@ -319,6 +319,42 @@ const DETAIL_TABLE_SPECS = {
 const DELETE_ROLE_URL = '/api/role-delete';
 const UNUSED_ROLES_URL = '/api/unused-roles';
 const DELETE_USER_URL = '/api/user-delete';
+const GHOST_ROLES_URL = '/api/ghost-roles';
+const DELETE_PROFILE_URL = '/api/profile-delete';
+const UNUSED_PROFILES_URL = '/api/unused-profiles';
+
+// Pulls a human-readable description out of an SAP error body, which may be
+// JSON (in one of several field spellings) or an HTML error page.
+function describeSapError(text) {
+  try {
+    const j = JSON.parse(text);
+    if (j && typeof j === 'object') {
+      const msg =
+        j.MESSAGE ?? j.message ?? j.DESCRIPTION ?? j.description ??
+        j.error?.message?.value ?? j.error?.message ?? j.error ?? j.ERROR;
+      return typeof msg === 'string' && msg.trim() ? msg.trim() : JSON.stringify(j, null, 2);
+    }
+    return String(j);
+  } catch {
+    return (
+      text
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&copy;/gi, '©')
+        .replace(/&[a-z]+;/gi, ' ')
+        .replace(/©.*?(rights reserved\.?|$)/i, '')
+        .replace(/\s+/g, ' ')
+        .trim() || '(empty response)'
+    );
+  }
+}
 
 export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose }) {
   const ref = useRef(null);
@@ -432,6 +468,109 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
       setDeleteStatus((prev) => ({ ...prev, [roleName]: 'error' }));
       setDeleteResponses((prev) => [
         { roleName, success: false, status: null, body: err.message, at: new Date().toLocaleTimeString() },
+        ...prev,
+      ]);
+    }
+  };
+
+  const refreshGhostRoles = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(GHOST_ROLES_URL);
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) setLiveDetailRows(rows);
+      }
+    } catch {
+      // silently ignore refresh failures — the existing list stays visible
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Ghost roles: SAP answers 201 Created on a successful delete; anything
+  // else is shown as the HTTP code plus SAP's own description.
+  const handleDeleteGhostRole = async (roleName) => {
+    setDeleteStatus((prev) => ({ ...prev, [roleName]: 'pending' }));
+    try {
+      const res = await fetch(DELETE_ROLE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ROLE_NAME: roleName }),
+      });
+      const text = await res.text();
+      const success = res.status === 201;
+      setDeleteStatus((prev) => ({ ...prev, [roleName]: success ? 'done' : 'error' }));
+      setDeleteResponses((prev) => [
+        {
+          roleName,
+          success,
+          status: res.status,
+          body: success
+            ? 'Role has been deleted successfully.'
+            : `Error ${res.status}: ${describeSapError(text)}`,
+          at: new Date().toLocaleTimeString(),
+        },
+        ...prev,
+      ]);
+      if (success) await refreshGhostRoles();
+    } catch (err) {
+      setDeleteStatus((prev) => ({ ...prev, [roleName]: 'error' }));
+      setDeleteResponses((prev) => [
+        { roleName, success: false, status: null, body: `Error: ${err.message}`, at: new Date().toLocaleTimeString() },
+        ...prev,
+      ]);
+    }
+  };
+
+  const refreshUnusedProfiles = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(UNUSED_PROFILES_URL);
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) setLiveDetailRows(rows);
+      }
+    } catch {
+      // silently ignore refresh failures — the existing list stays visible
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Unused profiles: the body is { PROFILE: <row's Profile> }. SAP answers
+  // 201 Created on success; anything else shows the HTTP code plus SAP's own
+  // description. Status is keyed with a prefix so it can't collide with
+  // role/user keys sharing the same deleteStatus map.
+  const handleDeleteProfile = async (profile) => {
+    const key = `profile:${profile}`;
+    setDeleteStatus((prev) => ({ ...prev, [key]: 'pending' }));
+    try {
+      const res = await fetch(DELETE_PROFILE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ PROFILE: profile }),
+      });
+      const text = await res.text();
+      const success = res.status === 201;
+      setDeleteStatus((prev) => ({ ...prev, [key]: success ? 'done' : 'error' }));
+      setDeleteResponses((prev) => [
+        {
+          roleName: profile,
+          success,
+          status: res.status,
+          body: success
+            ? 'Profile has been deleted successfully.'
+            : `Error ${res.status}: ${describeSapError(text)}`,
+          at: new Date().toLocaleTimeString(),
+        },
+        ...prev,
+      ]);
+      if (success) await refreshUnusedProfiles();
+    } catch (err) {
+      setDeleteStatus((prev) => ({ ...prev, [key]: 'error' }));
+      setDeleteResponses((prev) => [
+        { roleName: profile, success: false, status: null, body: `Error: ${err.message}`, at: new Date().toLocaleTimeString() },
         ...prev,
       ]);
     }
@@ -579,7 +718,7 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
         <section className="detail-section">
           <h3 className="detail-subhead">
             {tableSpec.heading(detailRows.length)}
-            {tile.key === 'unassignedRoles' && isRefreshing && (
+            {(tile.key === 'unassignedRoles' || tile.key === 'ghostRoles' || tile.key === 'unusedProfiles') && isRefreshing && (
               <span className="role-list-refreshing"> refreshing…</span>
             )}
           </h3>
@@ -593,7 +732,7 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
                       {col}
                     </th>
                   ))}
-                  {(tile.key === 'unassignedRoles' || tile.key === 'locked') && (
+                  {(tile.key === 'unassignedRoles' || tile.key === 'locked' || tile.key === 'ghostRoles' || tile.key === 'unusedProfiles') && (
                     <th scope="col" className="detail-actions-col">Actions</th>
                   )}
                 </tr>
@@ -621,6 +760,46 @@ export function MetricDetailDialog({ tile, sid, systemName, runLabel, onClose })
                             onClick={() => handleDeleteRole(row.roleName)}
                           >
                             {deleteStatus[row.roleName] === 'pending' ? '…' : 'Delete'}
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    {tile.key === 'ghostRoles' && (
+                      <td className="detail-actions-col">
+                        {deleteStatus[row.roleName] === 'done' ? (
+                          <span className="role-delete-done">Deleted</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="role-delete-btn"
+                            disabled={!row.roleName || deleteStatus[row.roleName] === 'pending'}
+                            onClick={() => handleDeleteGhostRole(row.roleName)}
+                          >
+                            {deleteStatus[row.roleName] === 'pending'
+                              ? '…'
+                              : deleteStatus[row.roleName] === 'error'
+                                ? 'Retry Delete'
+                                : 'Delete Role'}
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    {tile.key === 'unusedProfiles' && (
+                      <td className="detail-actions-col">
+                        {deleteStatus[`profile:${row.profile}`] === 'done' ? (
+                          <span className="role-delete-done">Deleted</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="role-delete-btn"
+                            disabled={!row.profile || deleteStatus[`profile:${row.profile}`] === 'pending'}
+                            onClick={() => handleDeleteProfile(row.profile)}
+                          >
+                            {deleteStatus[`profile:${row.profile}`] === 'pending'
+                              ? '…'
+                              : deleteStatus[`profile:${row.profile}`] === 'error'
+                                ? 'Retry Delete'
+                                : 'Delete Profile'}
                           </button>
                         )}
                       </td>

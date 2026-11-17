@@ -1,4 +1,4 @@
-import type { InvestigationState, JobRecord, NotifyResult, TicketResult } from "../types";
+import type { EnvironmentContext, InvestigationState, JobRecord, NotifyResult, TicketResult } from "../types";
 
 // Same origin as the rest of the app: the Express API proxies /api/batch/* to
 // the Python backend, so no separate host/port is needed here.
@@ -82,11 +82,18 @@ export async function fetchSapBatchJobs(date?: string): Promise<JobRecord[]> {
 export async function createInvestigation(
   runDate: string,
   jobs?: JobRecord[],
+  environment?: EnvironmentContext,
+  runAnalysis = true,
 ): Promise<{ investigation_id: string }> {
   const resp = await fetch(`${API_BASE}/investigations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ run_date: runDate, failed_jobs: jobs ?? [] }),
+    body: JSON.stringify({
+      run_date: runDate,
+      failed_jobs: jobs ?? [],
+      environment,
+      run_analysis: runAnalysis,
+    }),
   });
   if (!resp.ok) throw new Error(`Failed to start investigation: ${resp.status}`);
   return resp.json();
@@ -133,5 +140,34 @@ export async function notifyTeam(
     }
   );
   if (!resp.ok) throw new Error(`Failed to notify team: ${resp.status}`);
+  return resp.json();
+}
+
+export interface ErrorAnalysis {
+  summary: string | null;
+  analysis: string | null;
+  solution: string | null;
+  markdown: string;
+  matched_known_issues: string[];
+}
+
+/** Ask the AI agent to analyse a single job error and propose a fix. */
+export async function analyzeError(
+  job: JobRecord,
+  environment?: EnvironmentContext,
+): Promise<ErrorAnalysis> {
+  const resp = await fetch(`${API_BASE}/analyze-error`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      error: job.error_code || job.raw_log,
+      job_name: job.job_name,
+      program: job.program,
+      tcode: job.tcode,
+      raw_log: job.raw_log,
+      environment,
+    }),
+  });
+  if (!resp.ok) throw new Error(`Error analysis failed: ${resp.status}`);
   return resp.json();
 }

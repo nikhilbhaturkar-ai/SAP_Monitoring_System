@@ -5,11 +5,14 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.graph.state import InvestigationState
 from app.llm.groq_client import get_chat_model
 from app.models.schemas import JobRecord
-from app.prompts.analyze_logs import SYSTEM_PROMPT, build_user_prompt
+from app.prompts.analyze_logs import SYSTEM_PROMPT, build_user_prompt, extract_summary
 
 
-async def _analyze_one(model, job: JobRecord) -> str:
-    messages = [SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=build_user_prompt(job))]
+async def _analyze_one(model, job: JobRecord, environment: dict | None, all_jobs: list[JobRecord]) -> str:
+    messages = [
+        SystemMessage(content=SYSTEM_PROMPT),
+        HumanMessage(content=build_user_prompt(job, environment, all_jobs)),
+    ]
     response = await model.ainvoke(messages)
     return response.content
 
@@ -17,10 +20,12 @@ async def _analyze_one(model, job: JobRecord) -> str:
 async def analyze_logs(state: InvestigationState) -> dict:
     model = get_chat_model("analyze_logs")
     jobs = [JobRecord(**j) for j in state["failed_jobs"]]
+    environment = state.get("environment")
 
-    analyses = await asyncio.gather(*(_analyze_one(model, job) for job in jobs))
+    analyses = await asyncio.gather(*(_analyze_one(model, job, environment, jobs) for job in jobs))
     for job, analysis in zip(jobs, analyses):
         job.log_analysis = analysis
+        job.error_summary = extract_summary(analysis)
 
     return {
         "failed_jobs": [job.model_dump() for job in jobs],

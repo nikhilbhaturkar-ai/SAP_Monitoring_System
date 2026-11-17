@@ -17,6 +17,12 @@ export interface RetrievedDoc {
   source: string;
 }
 
+// Sent with every investigation; the backend fills in database / refresh defaults.
+export interface EnvironmentContext {
+  system: string;
+  environment: string;
+}
+
 export interface JobRecord {
   job_id: string;
   job_name: string;
@@ -28,6 +34,7 @@ export interface JobRecord {
   error_code: string;
   raw_log: string;
   log_analysis?: string | null;
+  error_summary?: string | null;
   matched_known_issues?: string[];
   retrieved_docs?: RetrievedDoc[];
   ticket_result?: TicketResult;
