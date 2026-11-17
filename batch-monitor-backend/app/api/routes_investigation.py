@@ -12,12 +12,18 @@ from app.storage.investigation_store import store
 router = APIRouter(prefix="/investigations", tags=["investigations"])
 
 
-async def _run_investigation(investigation_id: str, run_date: str, prefetched_jobs: list | None = None) -> None:
+async def _run_investigation(
+    investigation_id: str,
+    run_date: str,
+    prefetched_jobs: list | None = None,
+    environment: dict | None = None,
+) -> None:
     graph = get_graph()
     initial_state = {
         "investigation_id": investigation_id,
         "run_date": run_date,
         "failed_jobs": prefetched_jobs or [],
+        "environment": environment or {},
         "status": "running",
         "progress_log": [],
     }
@@ -46,7 +52,12 @@ async def create_investigation(payload: CreateInvestigationRequest):
         },
     )
     prefetched = [j.model_dump() for j in payload.failed_jobs] if payload.failed_jobs else None
-    asyncio.create_task(_run_investigation(investigation_id, payload.run_date, prefetched))
+    if not payload.run_analysis:
+        await store.update(investigation_id, {"failed_jobs": prefetched or [], "status": "awaiting_action"})
+        return {"investigation_id": investigation_id, "status": "awaiting_action"}
+    asyncio.create_task(
+        _run_investigation(investigation_id, payload.run_date, prefetched, payload.environment.model_dump())
+    )
     return {"investigation_id": investigation_id, "status": "pending"}
 
 

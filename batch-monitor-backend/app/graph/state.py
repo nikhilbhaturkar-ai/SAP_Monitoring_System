@@ -6,6 +6,7 @@ class InvestigationState(TypedDict):
     investigation_id: str
     run_date: str
     failed_jobs: list[dict[str, Any]]
+    environment: NotRequired[dict[str, Any]]
     recurring_errors: NotRequired[list[dict[str, Any]]]
     _retrieved_docs: NotRequired[list[dict[str, Any]]]
     incident_summary: NotRequired[str]
